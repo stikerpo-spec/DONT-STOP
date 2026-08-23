@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BloxyGreen — PS99 Games</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="gem">◆</span><span>Bloxy<span>Green</span></span></div>
+    <button class="nav active" data-page="home">⌂ <span>Home</span></button>
+    <div class="label">GAMES</div>
+    <button class="nav" data-page="dice">◈ <span>Dice</span></button>
+    <button class="nav" data-page="jackpot">♛ <span>Jackpot</span></button>
+    <button class="nav" data-page="upgrader">↗ <span>Upgrader</span></button>
+    <div class="label">COMMUNITY</div>
+    <button class="nav" data-page="leaderboard">♜ <span>Leaderboard</span></button>
+    <button class="nav" data-page="fairness">✓ <span>Fairness</span></button>
+    <div class="sidebar-bottom">
+      <div class="status"><i></i> System operational</div>
+      <button class="nav">⚙ <span>Settings</span></button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header>
+      <button class="mobile-menu" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+      <div class="crumb" id="crumb">Home</div>
+      <div class="header-actions">
+        <div class="balance"><span>💎</span><b id="balance">1,250,000</b></div>
+        <button class="deposit" onclick="toast('Demo deposit opened')">Deposit</button>
+        <button class="avatar" onclick="toast('Demo account')">S</button>
+      </div>
+    </header>
+
+    <section id="content"></section>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script>
+const state = { balance:1250000, lastFlip:null };
+const items = [
+ ['Huge Starry Owl','210M'],['Huge Lucki Golem','94.5M'],['Huge Angel Dragon','50.5M'],
+ ['Huge Rhino','20M'],['Huge Pixel Corgi','46M'],['Huge Royal Peacock','21M'],
+ ['Huge Prism Pegasus','23M'],['Huge Snow Globe Hamster','390M']
+];
+const pages = {
+home: `
+<div class="hero"><div><div class="eyebrow">PS99 GAMING PLATFORM</div><h1>Play fair.<br><em>Win big.</em></h1><p>Coinflip, Jackpot und Upgrader — in einer schnellen, modernen Oberfläche.</p><div class="hero-buttons"><button class="primary" onclick="go('dice')">Play Dice →</button><button class="secondary" onclick="go('jackpot')">View Jackpot</button></div></div><div class="hero-orb">◆</div></div>
+<div class="stats"><div><small>ACTIVE PLAYERS</small><b>1,284</b><span class="up">+12.4%</span></div><div><small>TOTAL WAGERED</small><b>12.8B</b><span class="up">+8.2%</span></div><div><small>LIVE JACKPOT</small><b>3.71B</b><span class="up">LIVE</span></div><div><small>PROVABLY FAIR</small><b>100%</b><span class="up">✓</span></div></div>
+<div class="section-title"><h2>Live games</h2><button onclick="go('dice')">View all →</button></div>
+<div class="game-grid"><div class="game-card dice-card" onclick="go('dice')"><div class="game-icon">◈</div><h3>Dice</h3><p>1v1 & custom modes</p><strong>PLAY NOW →</strong></div><div class="game-card jack-card" onclick="go('jackpot')"><div class="game-icon">♛</div><h3>Jackpot</h3><p>Compete for the pot</p><strong>JOIN GAME →</strong></div><div class="game-card up-card" onclick="go('upgrader')"><div class="game-icon">↗</div><h3>Upgrader</h3><p>Risk it for a multiplier</p><strong>UPGRADE →</strong></div></div>
+<div class="section-title"><h2>Recent items</h2></div><div class="items">${itemCards()}</div>`,
+dice: `
+<div class="page-head"><div><div class="eyebrow">GAME</div><h1>Dice</h1><p>Choose a side and challenge another player.</p></div><div class="pill">● Provably Fair</div></div>
+<div class="dice-layout"><div class="panel"><div class="mode-row"><button class="mode active">1v1</button><button class="mode">2v2</button><button class="mode">Crazy Mode</button></div><div class="arena"><div class="player"><div class="player-avatar">S</div><b>You</b><span id="you-side">Choose side</span></div><div class="vs">VS</div><div class="player"><div class="player-avatar other">?</div><b>Waiting...</b><span>Opponent</span></div></div><div class="coin" id="coin">?</div><div class="dice-actions"><button class="side-btn" onclick="flip('Heads')">HEADS</button><button class="side-btn red" onclick="flip('Tails')">TAILS</button></div><div class="bet"><label>WAGER</label><div><input id="diceBet" value="100000"><span>💎</span></div></div><button class="primary wide" onclick="startDice()">Find opponent</button></div><div class="panel side-panel"><h3>Recent flips</h3><div id="history"><div class="empty">No flips yet in this demo.</div></div></div></div>`,
+jackpot: `
+<div class="page-head"><div><div class="eyebrow">GAME</div><h1>Jackpot</h1><p>More items means a bigger chance to win.</p></div><div class="pill live">● LIVE</div></div>
+<div class="jackpot-pot"><div><small>TOTAL POT</small><b id="pot">3,710,507,712</b><span>💎</span></div><div class="timer" id="timer">00:24</div></div>
+<div class="jackpot-grid"><div class="panel"><div class="panel-top"><h3>Players <span>3</span></h3><button onclick="toast('Join flow opened')">+ Join</button></div>${player('S','You','2,295,507,712','62%')}${player('L','Leoalexispro123','1,375,000,000','37%')}${player('N','Nightfire','40,000,000','1%')}</div><div class="panel"><h3>Pot items</h3><div class="items compact">${itemCards()}</div></div></div>`,
+upgrader: `
+<div class="page-head"><div><div class="eyebrow">GAME</div><h1>Upgrader</h1><p>Pick an item, choose your multiplier and take your chance.</p></div></div>
+<div class="upgrade-grid"><div class="panel"><h3>Your item</h3><div class="upgrade-slot" id="from">Select an item</div><div class="mults"><button onclick="setMult(1.5)">1.5×</button><button class="active" onclick="setMult(2)">2×</button><button onclick="setMult(5)">5×</button><button onclick="setMult(10)">10×</button></div><button class="primary wide" onclick="upgrade()">UPGRADE <span id="multText">2×</span></button></div><div class="panel"><h3>Target</h3><div class="upgrade-target" id="target"><span>?</span><b>Select an item first</b></div><div class="chance"><span>Chance</span><b id="chance">50%</b></div></div></div>
+<div class="section-title"><h2>Your inventory</h2></div><div class="items">${itemCards(true)}</div>`,
+leaderboard: `<div class="page-head"><div><div class="eyebrow">COMMUNITY</div><h1>Leaderboard</h1><p>Top players ranked by total profit.</p></div></div><div class="panel table"><div class="thead"><span>#</span><span>PLAYER</span><span>WAGERED</span><span>PROFIT</span></div>${['GreenGod','LuckiPlayer','PetMaster','Stiker','DiamondBoy'].map((n,i)=>`<div class="tr"><span>#${i+1}</span><b>◉ ${n}</b><span>${(12-i*1.7).toFixed(1)}B</span><strong>+${(2.4-i*.31).toFixed(2)}B</strong></div>`).join('')}</div>`,
+fairness: `<div class="page-head"><div><div class="eyebrow">TRANSPARENCY</div><h1>Provably Fair</h1><p>Verify every result yourself. No trust required.</p></div></div><div class="fair-grid"><div class="panel"><div class="fair-icon">✓</div><h2>100% verifiable</h2><p>Each game result is generated from cryptographic seeds. The server cannot change the outcome after the game starts.</p><button class="secondary" onclick="toast('Verification demo')">Verify a result</button></div><div class="panel"><h3>How it works</h3><ol><li>Server creates a secret seed.</li><li>Client creates a public seed.</li><li>Both are combined into a hash.</li><li>The result is calculated deterministically.</li></ol></div></div>`
+};
+function itemCards(select=false){return items.map((x,i)=>`<div class="item ${select?'selectable':''}" ${select?`onclick="selectItem(${i})"`:''}><div class="pet">◆</div><div><b>${x[0]}</b><small>${x[1]} 💎</small></div></div>`).join('')}
+function player(a,n,v,p){return `<div class="player-row"><div class="player-avatar">${a}</div><div><b>${n}</b><small>${v} 💎</small></div><strong>${p}</strong></div>`}
+function go(p){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===p)); document.getElementById('content').innerHTML=pages[p]; document.getElementById('crumb').textContent=p[0].toUpperCase()+p.slice(1); window.scrollTo(0,0)}
+document.querySelectorAll('.nav[data-page]').forEach(n=>n.onclick=()=>go(n.dataset.page));
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1800)}
+function flip(side){document.getElementById('you-side').textContent=side; toast('Side selected: '+side)}
+function startDice(){const bet=+document.getElementById('diceBet').value||0;if(bet>state.balance)return toast('Not enough demo balance');state.balance-=bet;document.getElementById('balance').textContent=state.balance.toLocaleString();const win=Math.random()>.5;document.getElementById('coin').textContent=win?'✓':'×';toast(win?'You won the demo flip!':'You lost the demo flip.');}
+let mult=2;
+function setMult(x){mult=x;document.getElementById('multText').textContent=x+'×';document.querySelectorAll('.mults button').forEach(b=>b.classList.toggle('active',b.textContent===x+'×'));document.getElementById('chance').textContent=(100/x).toFixed(1)+'%'}
+function selectItem(i){document.getElementById('from').innerHTML=`<div class="pet">◆</div><b>${items[i][0]}</b><span>${items[i][1]} 💎</span>`;document.getElementById('target').innerHTML=`<span>◆</span><b>Target ×${mult}</b><small>${items[i][1]} → ${(parseFloat(items[i][1])*mult).toFixed(1)}M 💎</small>`;toast('Item selected')}
+function upgrade(){if(!document.getElementById('from').textContent.includes('Select'))toast(Math.random()<1/mult?'Upgrade won! 🎉':'Upgrade failed.')}
+go('home');
+setInterval(()=>{const e=document.getElementById('timer');if(e){let s=parseInt(e.textContent.split(':')[1]);s=(s+59)%60;e.textContent='00:'+String(s).padStart(2,'0')}},1000);
+</script>
+</body>
+</html>
