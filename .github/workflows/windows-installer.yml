@@ -1,0 +1,54 @@
+name: Build DON’T STOP Windows Installer
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        shell: pwsh
+        run: npm install --no-audit --no-fund
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: npm run desktop:build
+
+      - name: Verify installer
+        shell: pwsh
+        run: |
+          if (!(Test-Path "dist/DONT-STOP-Setup.exe")) { throw "DONT-STOP-Setup.exe was not created." }
+          Get-Item "dist/DONT-STOP-Setup.exe"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DONT-STOP-Windows
+          path: dist/DONT-STOP-Setup.exe
+          if-no-files-found: error
+
+      - name: Publish stable Windows download
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "windows-latest"
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --title "DON’T STOP Windows" --notes "Aktueller Windows-Installer von DON’T STOP."
+          }
+          gh release upload $tag "dist/DONT-STOP-Setup.exe" --repo $env:GITHUB_REPOSITORY --clobber
