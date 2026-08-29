@@ -1,6 +1,6 @@
 {
   "name": "dont-stop",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "description": "DON'T STOP - installable game for Android and Windows",
   "author": "stikerpo",
@@ -23,26 +23,19 @@
     "appId": "com.stikerpo.dontstop.desktop",
     "productName": "DON'T STOP",
     "artifactName": "DONT-STOP-Setup.exe",
-    "directories": {
-      "output": "dist"
-    },
+    "directories": { "output": "dist" },
     "files": [
       "electron/**/*",
+      "index.html",
       "game.html",
       "game.js",
       "save.js",
       "update.js",
+      "build-info.js",
       "manifest.webmanifest",
       "icon.svg"
     ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        }
-      ]
-    },
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }] },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
