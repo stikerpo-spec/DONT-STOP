@@ -1,0 +1,1 @@
+window.DontStopBuild = { version: '1.0.5', commit: 'SOURCE_BUILD' };
