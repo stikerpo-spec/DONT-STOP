@@ -1,14 +1,56 @@
 {
   "name": "dont-stop",
+  "version": "1.0.2",
   "private": true,
-  "version": "1.0.1",
-  "description": "DON’T STOP installable app",
+  "description": "DON'T STOP - installable game for Android and Windows",
+  "main": "electron/main.cjs",
   "scripts": {
-    "android:sync": "npx cap sync android"
+    "android:sync": "npx cap sync android",
+    "desktop:start": "electron .",
+    "desktop:build": "electron-builder --win nsis --x64"
   },
   "dependencies": {
     "@capacitor/android": "8.5.0",
     "@capacitor/cli": "8.5.0",
     "@capacitor/core": "8.5.0"
+  },
+  "devDependencies": {
+    "electron": "44.0.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.stikerpo.dontstop.desktop",
+    "productName": "DON'T STOP",
+    "artifactName": "DONT-STOP-Setup.exe",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "game.html",
+      "game.js",
+      "save.js",
+      "manifest.webmanifest",
+      "icon.svg"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "DON'T STOP",
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false
+    }
   }
 }
