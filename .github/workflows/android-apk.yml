@@ -26,7 +26,10 @@ jobs:
 
       - name: Read app version
         id: version
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create build metadata
         run: |
@@ -122,10 +125,7 @@ jobs:
         run: |
           TAG=android-latest
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq 'DONT-STOP.apk'; then
-              gh release delete-asset "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --yes
-            fi
-            gh release upload "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY"
+            gh release upload "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --clobber
           else
             gh release create "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --title "DONT STOP Android" --notes "Aktueller 3D-Android-Installer von DONT STOP." --latest=false
           fi
