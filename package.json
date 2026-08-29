@@ -1,6 +1,6 @@
 {
   "name": "dont-stop",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "DON'T STOP - installable 3D endless runner for Android and Windows",
   "author": "stikerpo",
@@ -30,6 +30,7 @@
       "game.html",
       "game.js",
       "save.js",
+      "auth.js",
       "update.js",
       "build-info.js",
       "manifest.webmanifest",
