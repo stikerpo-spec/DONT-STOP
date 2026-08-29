@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#090b16">
-  <meta name="description" content="DON’T STOP – spiele sofort, installiere die App und behalte deinen Fortschritt.">
+  <meta name="description" content="DON’T STOP – installierbare App für Android und Windows.">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,43 +12,42 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <title>DON’T STOP</title>
   <style>
-    :root{--panel:rgba(18,22,40,.82);--line:rgba(255,255,255,.11);--text:#f7f9ff;--muted:#a8b0c8;--accent:#6d5cff}
+    :root{--bg:#070912;--panel:rgba(18,22,40,.84);--line:rgba(255,255,255,.11);--text:#f7f9ff;--muted:#a8b0c8;--accent:#6d5cff;--good:#20e3b2}
     *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 0%,#171735 0,#090b16 42%,#05060c 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    body{min-height:100svh;display:grid;place-items:center;padding:20px;overflow-x:hidden}.shell{width:min(900px,100%);position:relative}.glow{position:absolute;inset:-25%;background:radial-gradient(circle,rgba(109,92,255,.14),transparent 60%);pointer-events:none;filter:blur(20px)}
-    .card{position:relative;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(22px);border-radius:28px;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,.45)}
-    .brand{display:flex;align-items:center;gap:16px}.logo{width:64px;height:64px;border-radius:18px;box-shadow:0 10px 30px rgba(109,92,255,.3)}h1{margin:0;font-size:clamp(2rem,5vw,3.5rem);letter-spacing:-.04em}p{color:var(--muted);line-height:1.6}.tag{display:inline-flex;margin-top:8px;padding:6px 10px;border-radius:999px;background:rgba(32,227,178,.1);border:1px solid rgba(32,227,178,.2);color:#8af5d7;font-size:.82rem;font-weight:700}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0}.mini{padding:18px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.03)}.mini strong{display:block;font-size:1rem;margin-bottom:6px}.mini span{color:var(--muted);font-size:.9rem}
-    .actions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}.btn{appearance:none;border:1px solid var(--line);border-radius:16px;padding:15px 16px;font:700 1rem inherit;color:var(--text);background:rgba(255,255,255,.05);cursor:pointer;text-decoration:none;text-align:center;transition:.18s transform,.18s background,.18s border-color}.btn:hover{transform:translateY(-2px);background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)}.btn.primary{background:linear-gradient(135deg,var(--accent),#8f4dff);border-color:transparent}.btn.alt{background:linear-gradient(135deg,#117d6a,#1cae8e);border-color:transparent}.status{margin-top:18px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);color:var(--muted);font-size:.9rem}.save{margin-top:18px;padding:18px;border:1px dashed var(--line);border-radius:18px}.save h2{font-size:1.05rem;margin:0 0 6px}.save-row{display:flex;justify-content:space-between;gap:12px;align-items:center}.pill{color:#8af5d7;font-weight:700}.footer{margin-top:18px;color:#747d97;font-size:.8rem;text-align:center}
-    @media(max-width:700px){body{padding:12px}.card{padding:20px;border-radius:22px}.grid,.actions{grid-template-columns:1fr}.save-row{align-items:flex-start;flex-direction:column}.btn{width:100%}}
+    body{min-height:100svh;display:grid;place-items:center;padding:20px}.shell{width:min(980px,100%);position:relative}.glow{position:absolute;inset:-25%;background:radial-gradient(circle,rgba(109,92,255,.16),transparent 60%);pointer-events:none;filter:blur(20px)}
+    .card{position:relative;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(22px);border-radius:28px;padding:30px;box-shadow:0 24px 80px rgba(0,0,0,.45)}
+    .brand{display:flex;align-items:center;gap:16px}.logo{width:68px;height:68px;border-radius:18px;box-shadow:0 10px 30px rgba(109,92,255,.3)}
+    h1{margin:0;font-size:clamp(2.3rem,6vw,4.1rem);letter-spacing:-.05em}.tag{display:inline-flex;margin-top:8px;padding:6px 10px;border-radius:999px;background:rgba(32,227,178,.1);border:1px solid rgba(32,227,178,.2);color:#8af5d7;font-size:.82rem;font-weight:800}p{color:var(--muted);line-height:1.65}
+    .platforms{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:26px 0}.platform{padding:20px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.035)}.platform h2{margin:0 0 8px;font-size:1.15rem}.platform p{margin:0 0 16px;font-size:.92rem}.btn{display:inline-flex;justify-content:center;align-items:center;min-height:50px;width:100%;border:1px solid var(--line);border-radius:16px;padding:14px 16px;font:800 1rem inherit;color:var(--text);background:rgba(255,255,255,.05);cursor:pointer;text-decoration:none;transition:.18s transform,.18s background,.18s border-color}.btn:hover{transform:translateY(-2px);background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)}.btn.primary{background:linear-gradient(135deg,var(--accent),#8f4dff);border-color:transparent}.btn.android{background:linear-gradient(135deg,#117d6a,#1cae8e);border-color:transparent}
+    .status{margin-top:18px;padding:13px 15px;border-radius:14px;background:rgba(255,255,255,.04);color:var(--muted);font-size:.9rem}.save{margin-top:16px;padding:18px;border:1px dashed var(--line);border-radius:18px}.save-row{display:flex;justify-content:space-between;gap:12px;align-items:center}.pill{color:#8af5d7;font-weight:800}.save .btn{width:auto;min-width:180px;min-height:44px;font-size:.9rem}.footer{margin-top:20px;color:#747d97;font-size:.8rem;text-align:center}
+    @media(max-width:720px){body{padding:12px}.card{padding:20px;border-radius:22px}.platforms{grid-template-columns:1fr}.save-row{align-items:flex-start;flex-direction:column}.save .btn{width:100%}.btn{min-height:52px}}
   </style>
 </head>
 <body>
   <main class="shell"><div class="glow"></div><section class="card">
-    <div class="brand"><img class="logo" src="./icon.svg" alt="DON’T STOP App Icon"><div><h1>DON’T STOP</h1><span class="tag">INSTALLIERBAR • OFFLINE SPIELBAR</span></div></div>
-    <p>DON’T STOP kann direkt gestartet oder installiert werden. Auf unterstützten Handys erscheint die App auf dem Startbildschirm, auf dem PC als eigene Anwendung.</p>
-    <div class="grid"><div class="mini"><strong>📱 Handy</strong><span>Installieren und wie eine normale App vom Startbildschirm öffnen.</span></div><div class="mini"><strong>🖥️ PC</strong><span>Als eigene App installieren und ohne normalen Browser-Tab spielen.</span></div><div class="mini"><strong>💾 Speicher</strong><span>Spielstand automatisch lokal sichern und beim nächsten Start laden.</span></div></div>
-    <div class="actions"><button id="installBtn" class="btn primary" hidden>App installieren</button><a class="btn alt" href="https://github.com/stikerpo-spec/DONT-STOP/releases/latest/download/DONT-STOP.apk">Android APK herunterladen</a><a id="playBtn" class="btn" href="./game.html">Spiel starten</a></div>
-    <div id="status" class="status">Installationsoptionen werden geprüft …</div>
-    <div class="save"><h2>Speicherstatus</h2><div class="save-row"><span>Lokaler Spielstand: <span id="saveState" class="pill">wird geprüft …</span></span><button id="testSave" class="btn">Speicherung testen</button></div></div>
-    <div class="footer">DON’T STOP • PWA + Android APK • Fortschritt wird lokal gespeichert</div>
+    <div class="brand"><img class="logo" src="./icon.svg" alt="DON’T STOP"><div><h1>DON’T STOP</h1><span class="tag">ECHTE INSTALLATION • OFFLINE SPIELBAR</span></div></div>
+    <p>Hier bekommst du die echte installierbare Version. Auf Windows wird eine richtige <b>.exe</b>-Setup-Datei installiert. Auf Android wird eine echte <b>.apk</b> zur Installation bereitgestellt. Die installierte Version startet direkt ins Spiel.</p>
+
+    <div class="platforms">
+      <div class="platform"><h2>🖥️ Windows-PC</h2><p>Installiere DON’T STOP als eigenständige Windows-App. Das Setup kann eine Desktop-Verknüpfung und einen Startmenü-Eintrag erstellen.</p><a class="btn primary" href="https://github.com/stikerpo-spec/DONT-STOP/releases/download/windows-latest/DONT-STOP-Setup.exe">DON’T STOP für Windows installieren</a></div>
+      <div class="platform"><h2>📱 Android</h2><p>Lade die echte APK herunter und installiere DON’T STOP als App auf deinem Smartphone.</p><a class="btn android" href="https://github.com/stikerpo-spec/DONT-STOP/releases/download/android-latest/DONT-STOP.apk">DON’T STOP für Android installieren</a></div>
+    </div>
+
+    <a class="btn" href="./game.html">▶ Spiel direkt im Browser starten</a>
+    <div id="status" class="status">Die installierten Versionen speichern deinen lokalen Spielstand getrennt auf dem jeweiligen Gerät.</div>
+    <div class="save"><div class="save-row"><span>Lokaler Spielstand: <span id="saveState" class="pill">wird geprüft …</span></span><button id="testSave" class="btn">Speicherung testen</button></div></div>
+    <div class="footer">DON’T STOP • Windows EXE + Android APK + Browser-Version</div>
   </section></main>
   <script src="./save.js"></script>
   <script>
-    let deferredPrompt = null;
-    const installBtn = document.getElementById('installBtn');
-    const status = document.getElementById('status');
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-
-    window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); deferredPrompt = event; installBtn.hidden = false; status.textContent = 'Dein Gerät unterstützt die direkte App-Installation. Tippe auf „App installieren“. '; });
-    installBtn.addEventListener('click', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; installBtn.hidden = true; });
-    window.addEventListener('appinstalled', () => { installBtn.hidden = true; status.textContent = 'DON’T STOP wurde installiert. Du kannst die App jetzt vom Startbildschirm bzw. Desktop öffnen.'; });
-    if (isIOS && !isStandalone) status.textContent = 'iPhone/iPad: Öffne das Teilen-Menü von Safari und wähle „Zum Home-Bildschirm“. Danach ist DON’T STOP wie eine App startbar.';
-    else if (isStandalone) status.textContent = 'DON’T STOP läuft bereits als installierte App.';
-    else status.textContent = 'Du kannst DON’T STOP über die Installationsfunktion deines Browsers auf dem Gerät speichern.';
-    if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
-    document.getElementById('testSave').addEventListener('click', () => { const ok = window.DontStopSave.set({ lastTest: new Date().toISOString() }); document.getElementById('saveState').textContent = ok ? 'gesichert ✓' : 'Fehler'; });
-    document.getElementById('saveState').textContent = window.DontStopSave.hasSave() ? 'vorhanden ✓' : 'bereit ✓';
+    const saveState=document.getElementById('saveState');
+    const ok=window.DontStopSave.hasSave();
+    saveState.textContent=ok?'vorhanden ✓':'bereit ✓';
+    document.getElementById('testSave').addEventListener('click',()=>{
+      const saved=window.DontStopSave.set({lastTest:new Date().toISOString()});
+      saveState.textContent=saved?'gesichert ✓':'Fehler';
+      document.getElementById('status').textContent=saved?'Spielstand erfolgreich lokal gespeichert.':'Der lokale Spielstand konnte nicht gespeichert werden.';
+    });
   </script>
 </body>
 </html>
