@@ -58,12 +58,17 @@ jobs:
           path: DONT-STOP.apk
           if-no-files-found: error
 
-      - name: Publish latest APK release
+      - name: Publish stable Android download
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="build-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" DONT-STOP.apk \
-            --title "DON’T STOP Android Build $GITHUB_RUN_NUMBER" \
-            --notes "Automatisch aus dem aktuellen main-Stand gebaut. Installierbare Android-Testversion von DON’T STOP." \
-            --latest
+          TAG="android-latest"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" DONT-STOP.apk \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "DON’T STOP Android" \
+              --notes "Aktueller Android-Installer von DON’T STOP." \
+              --latest=false
+          fi
