@@ -24,11 +24,16 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Read app version
+        id: version
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+
       - name: Create build metadata
         run: |
           node <<'NODE'
           const fs = require('fs');
-          fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '1.3.0', commit: '${process.env.GITHUB_SHA}' };\n`);
+          const pkg = require('./package.json');
+          fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '${pkg.version}', commit: '${process.env.GITHUB_SHA}' };\n`);
           NODE
 
       - name: Prepare web files
@@ -39,6 +44,44 @@ jobs:
 
       - name: Create Android project
         run: npx cap add android
+
+      - name: Install native in-app updater
+        run: |
+          MAIN_ACTIVITY=$(find android/app/src/main/java -name MainActivity.java | head -n 1)
+          test -n "$MAIN_ACTIVITY"
+          JAVA_DIR=$(dirname "$MAIN_ACTIVITY")
+          cp native/android/DontStopUpdater.java "$JAVA_DIR/DontStopUpdater.java"
+          mkdir -p android/app/src/main/res/xml
+          cp native/android/file_paths.xml android/app/src/main/res/xml/file_paths.xml
+          python3 - <<'PY'
+          from pathlib import Path
+
+          main = next(Path('android/app/src/main/java').rglob('MainActivity.java'))
+          text = main.read_text()
+          if 'import com.stikerpo.dontstop.DontStopUpdater;' not in text:
+              text = text.replace('import com.getcapacitor.BridgeActivity;', 'import com.getcapacitor.BridgeActivity;\nimport com.stikerpo.dontstop.DontStopUpdater;')
+          if 'registerPlugin(DontStopUpdater.class);' not in text:
+              text = text.replace('public class MainActivity extends BridgeActivity {', 'public class MainActivity extends BridgeActivity {\n    @Override\n    public void onCreate(android.os.Bundle savedInstanceState) {\n        registerPlugin(DontStopUpdater.class);\n        super.onCreate(savedInstanceState);\n    }')
+          main.write_text(text)
+
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text()
+          if 'android.permission.REQUEST_INSTALL_PACKAGES' not in text:
+              text = text.replace('<manifest ', '<manifest\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n', 1)
+          provider = '''\n        <provider\n            android:name="androidx.core.content.FileProvider"\n            android:authorities="${applicationId}.fileprovider"\n            android:exported="false"\n            android:grantUriPermissions="true">\n            <meta-data\n                android:name="android.support.FILE_PROVIDER_PATHS"\n                android:resource="@xml/file_paths" />\n        </provider>'''
+          if 'androidx.core.content.FileProvider' not in text:
+              text = text.replace('</application>', provider + '\n    </application>')
+          manifest.write_text(text)
+
+          gradle = Path('android/app/build.gradle')
+          text = gradle.read_text()
+          version_code = 1000 + int(__import__('os').environ['GITHUB_RUN_NUMBER'])
+          import re
+          text = re.sub(r'(?m)^\s*versionCode\s+\d+', f'        versionCode {version_code}', text)
+          text = re.sub(r'(?m)^\s*versionName\s+"[^"]+"', f'        versionName "${{APP_VERSION}}"', text)
+          gradle.write_text(text)
+          PY
+          sed -i "s/\${APP_VERSION}/${{ steps.version.outputs.version }}/g" android/app/build.gradle
 
       - name: Sync Android project
         run: npx cap sync android
