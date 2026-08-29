@@ -26,7 +26,8 @@ jobs:
 
       - name: Create build metadata
         shell: pwsh
-        run: Set-Content -Path build-info.js -Value "window.DontStopBuild = { version: '1.0.5', commit: '${env:GITHUB_SHA}' };"
+        run: |
+          Set-Content -Path build-info.js -Value "window.DontStopBuild = { version: '1.0.5', commit: '${env:GITHUB_SHA}' };"
 
       - name: Build Windows installer
         run: npm run desktop:build
