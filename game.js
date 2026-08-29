@@ -105,10 +105,17 @@
   function currentSpeed() { const cfg = levelConfig(); return cfg.speed + Math.min(330, elapsed * cfg.ramp); }
   function spawnObstacle() {
     const cfg = levelConfig();
+    // Es gibt bei jedem Spawn immer mindestens eine sichtbar freie Spur.
     const safeLane = Math.floor(Math.random() * LANES);
     const canDouble = elapsed >= cfg.doubleAfter && cfg.doubleChance > 0 && Math.random() < cfg.doubleChance;
-    if (canDouble) [0, 1, 2].filter(x => x !== safeLane).forEach(createObstacle);
-    else createObstacle(Math.floor(Math.random() * LANES));
+    if (canDouble) {
+      [0, 1, 2].filter(x => x !== safeLane).forEach(createObstacle);
+    } else {
+      // Bugfix: Die zuvor berechnete sichere Spur wurde hier ignoriert.
+      // Das Hindernis wird jetzt genau in der zufällig gewählten Spur gespawnt,
+      // während die beiden anderen Spuren frei bleiben.
+      createObstacle((safeLane + 1) % LANES);
+    }
   }
   function obstacleHit(obj) {
     if (obj.lane !== lane) return false;
