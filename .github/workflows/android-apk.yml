@@ -45,8 +45,9 @@ jobs:
         shell: bash
         run: |
           rm -rf www
-          mkdir -p www
-          cp index.html game.html game.js save.js auth.js realism.js sw.js update.js progression.js levels20.js build-info.js manifest.webmanifest icon.svg www/
+          mkdir -p www/assets
+          cp index.html game.html game.js save.js auth.js realism.js sw.js update.js progression.js levels20.js features.js build-info.js manifest.webmanifest icon.svg www/
+          cp assets/*.svg www/assets/
 
       - name: Create Android project
         shell: bash
@@ -77,13 +78,11 @@ jobs:
           import_line = 'import com.stikerpo.dontstop.DontStopUpdater;'
           marker = 'import com.getcapacitor.BridgeActivity;'
           if import_line not in text:
-              if marker not in text:
-                  raise SystemExit('BridgeActivity-Import in MainActivity.java nicht gefunden.')
+              if marker not in text: raise SystemExit('BridgeActivity-Import in MainActivity.java nicht gefunden.')
               text = text.replace(marker, marker + '\n' + import_line)
           marker = 'public class MainActivity extends BridgeActivity {'
           if 'registerPlugin(DontStopUpdater.class);' not in text:
-              if marker not in text:
-                  raise SystemExit('MainActivity-Klasse nicht gefunden.')
+              if marker not in text: raise SystemExit('MainActivity-Klasse nicht gefunden.')
               text = text.replace(marker, marker + '''\n    @Override\n    public void onCreate(android.os.Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        registerPlugin(DontStopUpdater.class);\n    }''')
           main.write_text(text)
 
@@ -92,13 +91,11 @@ jobs:
           permission = '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
           if permission not in text:
               match = re.search(r'<manifest\b[^>]*>', text)
-              if not match:
-                  raise SystemExit('AndroidManifest.xml: <manifest>-Element nicht gefunden.')
+              if not match: raise SystemExit('AndroidManifest.xml: <manifest>-Element nicht gefunden.')
               text = text[:match.end()] + '\n    ' + permission + text[match.end():]
           provider = '''\n        <provider\n            android:name="androidx.core.content.FileProvider"\n            android:authorities="${applicationId}.fileprovider"\n            android:exported="false"\n            android:grantUriPermissions="true">\n            <meta-data\n                android:name="android.support.FILE_PROVIDER_PATHS"\n                android:resource="@xml/file_paths" />\n        </provider>'''
           if 'androidx.core.content.FileProvider' not in text:
-              if '</application>' not in text:
-                  raise SystemExit('AndroidManifest.xml: </application> nicht gefunden.')
+              if '</application>' not in text: raise SystemExit('AndroidManifest.xml: </application> nicht gefunden.')
               text = text.replace('</application>', provider + '\n    </application>')
           manifest.write_text(text)
 
@@ -106,21 +103,16 @@ jobs:
           text = gradle.read_text()
           version_code = 1000 + int(os.environ['GITHUB_RUN_NUMBER'])
           text, count = re.subn(r'(?m)^\s*versionCode\s+\d+', f'        versionCode {version_code}', text, count=1)
-          if count != 1:
-              raise SystemExit('build.gradle: versionCode nicht gefunden.')
+          if count != 1: raise SystemExit('build.gradle: versionCode nicht gefunden.')
           text, count = re.subn(r'(?m)^\s*versionName\s+"[^"]+"', f'        versionName "{os.environ["APP_VERSION"]}"', text, count=1)
-          if count != 1:
-              raise SystemExit('build.gradle: versionName nicht gefunden.')
-
+          if count != 1: raise SystemExit('build.gradle: versionName nicht gefunden.')
           signing = '''    signingConfigs {\n        release {\n            storeFile file(System.getenv("SIGNING_STORE_FILE"))\n            storePassword System.getenv("SIGNING_STORE_PASSWORD")\n            keyAlias System.getenv("SIGNING_KEY_ALIAS")\n            keyPassword System.getenv("SIGNING_KEY_PASSWORD")\n        }\n    }\n\n'''
           if 'signingConfigs {' not in text:
               marker = '    buildTypes {'
-              if marker not in text:
-                  raise SystemExit('build.gradle: buildTypes nicht gefunden.')
+              if marker not in text: raise SystemExit('build.gradle: buildTypes nicht gefunden.')
               text = text.replace(marker, signing + marker, 1)
           text, count = re.subn(r'(?s)(buildTypes\s*\{\s*release\s*\{)', r'\1\n            signingConfig signingConfigs.release', text, count=1)
-          if count != 1:
-              raise SystemExit('build.gradle: release signingConfig konnte nicht gesetzt werden.')
+          if count != 1: raise SystemExit('build.gradle: release signingConfig konnte nicht gesetzt werden.')
           gradle.write_text(text)
           PY
 
