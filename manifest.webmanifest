@@ -2,7 +2,7 @@
   "name": "DON’T STOP",
   "short_name": "DON’T STOP",
   "description": "DON’T STOP – endless survival game",
-  "start_url": "./",
+  "start_url": "./game.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
