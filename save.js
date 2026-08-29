@@ -19,6 +19,11 @@
     equipped: {},
     achievements: [],
     missions: {},
+    missionClaimed: {},
+    upgrades: {},
+    ownedCharacters: ['starter'],
+    ownedTrails: ['none'],
+    progression: { world: 'city', prestige: 0, dailyStreak: 0, dailyClaimedAt: '', highestLevel: 1, character: 'starter', trail: 'none' },
     season: {},
     settings: { music: true, sfx: true, haptics: true, graphics: 'high', language: 'de' },
     progress: {},
@@ -50,12 +55,18 @@
 
   function normalize(state) {
     state.unlockedLevels = Array.from(new Set([1, ...(state.unlockedLevels || [])].map(Number))).filter(Number.isFinite).sort((a,b) => a-b);
-    state.selectedLevel = Math.max(1, Number(state.selectedLevel) || 1);
+    state.selectedLevel = Math.max(1, Math.min(150, Number(state.selectedLevel) || 1));
     state.coins = Math.max(0, Number(state.coins) || 0);
     state.gems = Math.max(0, Number(state.gems) || 0);
     state.bestScore = Math.max(0, Number(state.bestScore) || 0);
     state.bestTime = Math.max(0, Number(state.bestTime) || 0);
     state.bestCombo = Math.max(0, Number(state.bestCombo) || 0);
+    state.progression = deepMerge(safeClone(defaults.progression), state.progression || {});
+    state.progression.prestige = Math.max(0, Number(state.progression.prestige) || 0);
+    state.progression.highestLevel = Math.max(1, Number(state.progression.highestLevel) || 1, ...state.unlockedLevels);
+    state.upgrades = state.upgrades || {};
+    state.ownedCharacters = Array.from(new Set(['starter', ...(state.ownedCharacters || [])]));
+    state.ownedTrails = Array.from(new Set(['none', ...(state.ownedTrails || [])]));
     return state;
   }
 
@@ -111,4 +122,15 @@
   window.addEventListener('pagehide', saveImmediately, { capture: true });
   window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveImmediately(); });
   window.addEventListener('beforeunload', saveImmediately);
+
+  function loadFeatures() {
+    if (window.__dontStopFeaturesLoaded || !document.body) return;
+    window.__dontStopFeaturesLoaded = true;
+    const script = document.createElement('script');
+    script.src = './features.js?v=ultimate';
+    script.async = false;
+    document.body.appendChild(script);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadFeatures, { once: true });
+  else loadFeatures();
 })();
