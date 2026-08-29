@@ -47,11 +47,7 @@ jobs:
         run: |
           $tag = 'windows-latest'
           if (gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null) {
-            $assets = gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets --jq '.assets[].name'
-            if ($assets -contains 'DONT-STOP-Setup.exe') {
-              gh release delete-asset $tag 'DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY --yes
-            }
-            gh release upload $tag 'dist/DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY
+            gh release upload $tag 'dist/DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY --clobber
           } else {
             gh release create $tag 'dist/DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY --title 'DONT STOP Windows' --notes 'Aktueller realistischer 3D-Windows-Installer von DONT STOP.' --latest=false
           }
