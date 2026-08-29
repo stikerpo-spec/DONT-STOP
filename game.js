@@ -6,6 +6,7 @@
   const scoreEl = document.getElementById('score');
   const bestEl = document.getElementById('best');
   const coinsEl = document.getElementById('coins');
+  const levelEl = document.getElementById('level');
   const overlay = document.getElementById('overlay');
   const overlayText = document.getElementById('overlayText');
   const startBtn = document.getElementById('startBtn');
@@ -16,16 +17,25 @@
 
   const LANES = 3;
   const DEFAULT_LANE = 1;
+  const LEVELS = {
+    1: { name: 'NORMAL', speed: 240, spawn: 1.05, ramp: 3.0, doubleAfter: 999, doubleChance: 0 },
+    2: { name: 'SCHNELL', speed: 285, spawn: 0.90, ramp: 4.5, doubleAfter: 14, doubleChance: 0.10 },
+    3: { name: 'HART', speed: 325, spawn: 0.78, ramp: 5.5, doubleAfter: 10, doubleChance: 0.18 },
+    4: { name: 'EXTREM', speed: 365, spawn: 0.66, ramp: 6.5, doubleAfter: 8, doubleChance: 0.24 },
+    5: { name: 'CHAOS', speed: 410, spawn: 0.56, ramp: 7.0, doubleAfter: 6, doubleChance: 0.30 }
+  };
+
   let state = window.DontStopSave.read();
   let lane = Number.isInteger(state.progress?.lane) ? state.progress.lane : DEFAULT_LANE;
+  let selectedLevel = clamp(Number(state.selectedLevel || 1), 1, Object.keys(LEVELS).length);
   let score = 0;
   let runCoins = 0;
+  let dodged = 0;
   let elapsed = 0;
   let running = false;
   let gameOver = false;
   let lastFrame = 0;
   let spawnTimer = 0;
-  let coinTimer = 0;
   let checkpointTimer = 0;
   let raf = 0;
   let objects = [];
@@ -34,22 +44,23 @@
 
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
   const format = n => Math.floor(n).toLocaleString('de-DE');
+  const levelConfig = () => LEVELS[selectedLevel] || LEVELS[1];
 
   function updateHud() {
     scoreEl.textContent = format(score);
     bestEl.textContent = format(state.bestScore || 0);
     coinsEl.textContent = format((state.coins || 0) + runCoins);
+    if (levelEl) levelEl.textContent = `${selectedLevel} • ${levelConfig().name}`;
   }
 
-  function setSaveStatus(text) {
-    savePill.textContent = text;
-  }
+  function setSaveStatus(text) { savePill.textContent = text; }
 
   function saveActiveRun() {
     const activeRun = running && !gameOver
-      ? { score: Math.floor(score), elapsed, runCoins, lane, seed }
+      ? { score: Math.floor(score), elapsed, runCoins, dodged, lane, seed, selectedLevel }
       : null;
     const ok = window.DontStopSave.set({
+      selectedLevel,
       progress: { ...(state.progress || {}), lane, activeRun }
     });
     state = window.DontStopSave.read();
@@ -60,18 +71,17 @@
     const finalScore = Math.floor(score);
     const finalTime = elapsed;
     const newBest = finalScore > (state.bestScore || 0);
-    const nextBestScore = Math.max(state.bestScore || 0, finalScore);
-    const nextBestTime = Math.max(state.bestTime || 0, finalTime);
-    const nextBestCombo = Math.max(state.bestCombo || 0, 0);
     const stats = state.statistics || {};
     const ok = window.DontStopSave.set({
-      bestScore: nextBestScore,
-      bestTime: nextBestTime,
-      bestCombo: nextBestCombo,
+      bestScore: Math.max(state.bestScore || 0, finalScore),
+      bestTime: Math.max(state.bestTime || 0, finalTime),
+      bestCombo: Math.max(state.bestCombo || 0, dodged),
       coins: (state.coins || 0) + runCoins,
+      selectedLevel,
       statistics: {
         ...stats,
-        totalTime: (stats.totalTime || 0) + finalTime
+        totalTime: (stats.totalTime || 0) + finalTime,
+        totalDodges: (stats.totalDodges || 0) + dodged
       },
       progress: { ...(state.progress || {}), lane, activeRun: null }
     });
@@ -90,18 +100,19 @@
     if (next !== lane) {
       lane = next;
       positionPlayer();
+      window.DontStopSave.set({ progress: { ...(state.progress || {}), lane } });
       setSaveStatus('GEÄNDERT');
     }
   }
 
-  function createObject(type, laneIndex) {
+  function createObstacle(laneIndex) {
     const el = document.createElement('div');
-    el.className = type === 'coin' ? 'coin' : 'obstacle';
+    el.className = 'obstacle';
     el.style.left = `${((laneIndex + 0.5) / LANES) * 100}%`;
     el.style.transform = 'translateX(-50%)';
     el.style.top = '-70px';
     arena.appendChild(el);
-    objects.push({ el, type, lane: laneIndex, y: -70, collected: false });
+    objects.push({ el, type: 'obstacle', lane: laneIndex, y: -70, scored: false, id: `${Date.now()}-${Math.random()}` });
   }
 
   function clearObjects() {
@@ -110,29 +121,30 @@
   }
 
   function currentSpeed() {
-    return 260 + Math.min(360, elapsed * 8.5);
+    const cfg = levelConfig();
+    return cfg.speed + Math.min(330, elapsed * cfg.ramp);
   }
 
   function spawnObstacle() {
+    const cfg = levelConfig();
     const safeLane = Math.floor(Math.random() * LANES);
-    const double = elapsed > 18 && Math.random() < 0.24;
-    if (double) {
-      const lanes = [0, 1, 2].filter(x => x !== safeLane);
-      lanes.forEach(laneIndex => createObject('obstacle', laneIndex));
-    } else {
-      createObject('obstacle', Math.floor(Math.random() * LANES));
+    const canDouble = elapsed >= cfg.doubleAfter && cfg.doubleChance > 0 && Math.random() < cfg.doubleChance;
+    if (canDouble) {
+      const blocked = [0, 1, 2].filter(x => x !== safeLane);
+      blocked.forEach(createObstacle);
+      return;
     }
+    createObstacle(Math.floor(Math.random() * LANES));
   }
 
-  function spawnCoin() {
-    createObject('coin', Math.floor(Math.random() * LANES));
-  }
-
-  function collides(obj) {
+  function obstacleHit(obj) {
+    // Faire Kollision: nur wenn sich die tatsächlichen Rechtecke deutlich überlappen.
     if (obj.lane !== lane) return false;
     const pr = player.getBoundingClientRect();
     const or = obj.el.getBoundingClientRect();
-    return !(pr.right < or.left || pr.left > or.right || pr.bottom < or.top || pr.top > or.bottom);
+    const overlapX = Math.min(pr.right, or.right) - Math.max(pr.left, or.left);
+    const overlapY = Math.min(pr.bottom, or.bottom) - Math.max(pr.top, or.top);
+    return overlapX > 8 && overlapY > 8;
   }
 
   function endRun() {
@@ -143,7 +155,11 @@
     clearObjects();
     const newBest = finishRunSave();
     overlay.classList.remove('hidden');
-    overlayText.innerHTML = `${newBest ? '<strong>🏆 NEUER REKORD!</strong><br>' : ''}Score: <strong>${format(score)}</strong><br>Überlebt: <strong>${elapsed.toFixed(1)} s</strong><br>Coins: <strong>+${runCoins}</strong>`;
+    overlayText.innerHTML = `${newBest ? '<strong>🏆 NEUER REKORD!</strong><br>' : ''}`
+      + `Level ${selectedLevel} • ${levelConfig().name}<br>`
+      + `Score: <strong>${format(score)}</strong><br>`
+      + `Ausgewichen: <strong>${format(dodged)}</strong><br>`
+      + `Coins: <strong>+${runCoins}</strong>`;
     startBtn.hidden = false;
     startBtn.textContent = 'NOCHMAL';
     resumeBtn.hidden = true;
@@ -156,25 +172,40 @@
     gameOver = false;
     running = true;
     overlay.classList.add('hidden');
-    lane = resume ? clamp(Number(state.progress?.activeRun?.lane ?? state.progress?.lane ?? DEFAULT_LANE), 0, LANES - 1) : DEFAULT_LANE;
-    score = resume ? Number(state.progress?.activeRun?.score || 0) : 0;
-    elapsed = resume ? Number(state.progress?.activeRun?.elapsed || 0) : 0;
-    runCoins = resume ? Number(state.progress?.activeRun?.runCoins || 0) : 0;
-    seed = resume ? state.progress?.activeRun?.seed ?? null : Math.floor(Math.random() * 2_147_483_647);
+
+    const active = state.progress?.activeRun;
+    if (resume && active) {
+      selectedLevel = clamp(Number(active.selectedLevel || state.selectedLevel || 1), 1, 5);
+      lane = clamp(Number(active.lane ?? state.progress?.lane ?? DEFAULT_LANE), 0, LANES - 1);
+      score = Number(active.score || 0);
+      elapsed = Number(active.elapsed || 0);
+      runCoins = Number(active.runCoins || 0);
+      dodged = Number(active.dodged || 0);
+      seed = active.seed ?? null;
+    } else {
+      selectedLevel = clamp(Number(state.selectedLevel || 1), 1, 5);
+      lane = DEFAULT_LANE;
+      score = 0;
+      elapsed = 0;
+      runCoins = 0;
+      dodged = 0;
+      seed = Math.floor(Math.random() * 2_147_483_647);
+    }
+
     checkpointTimer = 0;
     lastFrame = performance.now();
-    spawnTimer = 0.35;
-    coinTimer = 0.8;
+    spawnTimer = resume ? 0.5 : 0.75;
     positionPlayer();
     updateHud();
 
     if (!resume) {
       const stats = state.statistics || {};
       window.DontStopSave.set({
+        selectedLevel,
         statistics: { ...stats, totalRuns: (stats.totalRuns || 0) + 1 },
         progress: {
           ...(state.progress || {}),
-          activeRun: { score: 0, elapsed: 0, runCoins: 0, lane, seed }
+          activeRun: { score: 0, elapsed: 0, runCoins: 0, dodged: 0, lane, seed, selectedLevel }
         }
       });
       state = window.DontStopSave.read();
@@ -188,35 +219,34 @@
     const dt = Math.min(0.05, (now - lastFrame) / 1000);
     lastFrame = now;
     elapsed += dt;
-    score += dt * (100 + elapsed * 1.8);
+    score += dt * (90 + selectedLevel * 18 + elapsed * (1.25 + selectedLevel * 0.12));
     spawnTimer -= dt;
-    coinTimer -= dt;
     checkpointTimer -= dt;
 
     if (spawnTimer <= 0) {
       spawnObstacle();
-      spawnTimer = Math.max(0.28, 0.92 - elapsed * 0.014);
-    }
-    if (coinTimer <= 0) {
-      spawnCoin();
-      coinTimer = Math.max(0.45, 1.35 - elapsed * 0.008);
+      const cfg = levelConfig();
+      spawnTimer = Math.max(0.30, cfg.spawn - elapsed * 0.007);
     }
 
     const speed = currentSpeed();
     for (const obj of [...objects]) {
       obj.y += speed * dt;
       obj.el.style.top = `${obj.y}px`;
-      if (!obj.collected && collides(obj)) {
-        if (obj.type === 'coin') {
-          obj.collected = true;
-          runCoins += 1;
-          obj.el.remove();
-          objects = objects.filter(x => x !== obj);
-          continue;
-        }
+
+      if (obstacleHit(obj)) {
         endRun();
         return;
       }
+
+      // Erst wenn das Hindernis komplett an der Spielerzone vorbei ist, zählt es als erfolgreich ausgewichen.
+      const playerZoneY = arena.clientHeight * 0.76;
+      if (!obj.scored && obj.y > playerZoneY + 34) {
+        obj.scored = true;
+        dodged += 1;
+        runCoins += 1;
+      }
+
       if (obj.y > arena.clientHeight + 100) {
         obj.el.remove();
         objects = objects.filter(x => x !== obj);
@@ -226,7 +256,7 @@
     updateHud();
     if (checkpointTimer <= 0) {
       saveActiveRun();
-      checkpointTimer = 1;
+      checkpointTimer = 0.75;
     }
     raf = requestAnimationFrame(loop);
   }
@@ -237,7 +267,7 @@
     running = false;
     cancelAnimationFrame(raf);
     overlay.classList.remove('hidden');
-    overlayText.textContent = 'Run pausiert. Dein Fortschritt wurde gespeichert.';
+    overlayText.textContent = `Level ${selectedLevel} pausiert. ${format(runCoins)} Coins im aktuellen Run. Dein Fortschritt wurde gespeichert.`;
     startBtn.hidden = true;
     resumeBtn.hidden = false;
   }
@@ -251,7 +281,7 @@
     const active = state.progress?.activeRun;
     if (active && Number(active.elapsed) > 0) {
       resumeBtn.hidden = false;
-      overlayText.textContent = `Du hast einen gespeicherten Run: ${Number(active.elapsed).toFixed(1)} Sekunden und ${format(active.score)} Punkte.`;
+      overlayText.textContent = `Gespeicherter Run: Level ${active.selectedLevel || 1} • ${Number(active.elapsed).toFixed(1)} s • ${format(active.runCoins || 0)} Coins.`;
     }
   }
 
