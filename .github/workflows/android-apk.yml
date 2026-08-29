@@ -59,7 +59,6 @@ jobs:
           MAIN_ACTIVITY=$(find android/app/src/main/java -name MainActivity.java | head -n 1)
           test -n "$MAIN_ACTIVITY"
           JAVA_DIR=$(dirname "$MAIN_ACTIVITY")
-          PACKAGE_PATH=$(dirname "$MAIN_ACTIVITY")
           cp native/android/DontStopUpdater.java "$JAVA_DIR/DontStopUpdater.java"
           mkdir -p android/app/src/main/res/xml
           cp native/android/file_paths.xml android/app/src/main/res/xml/file_paths.xml
@@ -88,7 +87,7 @@ jobs:
           text = manifest.read_text()
           permission = '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
           if permission not in text:
-              match = re.search(r'<manifest\\b[^>]*>', text)
+              match = re.search(r'<manifest\b[^>]*>', text)
               if not match:
                   raise SystemExit('AndroidManifest.xml: <manifest>-Element nicht gefunden.')
               insert_at = match.end()
