@@ -3,7 +3,7 @@ const path = require('node:path');
 
 const createWindow = () => {
   const win = new BrowserWindow({
-    width: 520,
+    width: 560,
     height: 900,
     minWidth: 420,
     minHeight: 650,
@@ -18,7 +18,7 @@ const createWindow = () => {
   });
 
   Menu.setApplicationMenu(null);
-  win.loadFile(path.join(__dirname, '..', 'game.html'));
+  win.loadFile(path.join(__dirname, '..', 'index.html'));
 };
 
 app.whenReady().then(() => {
