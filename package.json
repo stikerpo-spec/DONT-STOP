@@ -1,6 +1,6 @@
 {
   "name": "dont-stop",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "description": "DON'T STOP - installable game for Android and Windows",
   "author": "stikerpo",
@@ -31,6 +31,7 @@
       "game.html",
       "game.js",
       "save.js",
+      "update.js",
       "manifest.webmanifest",
       "icon.svg"
     ],
