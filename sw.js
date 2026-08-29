@@ -1,30 +1,22 @@
-const CACHE = 'dont-stop-v4';
+const CACHE = 'dont-stop-v5';
 const ASSETS = [
-  './',
-  './index.html',
-  './game.html',
-  './game.js',
-  './save.js',
-  './update.js',
-  './manifest.webmanifest',
-  './icon.svg'
+  './','./index.html','./game.html','./game.js','./save.js','./update.js','./build-info.js','./manifest.webmanifest','./icon.svg'
 ];
 
 const isSameOrigin = request => new URL(request.url).origin === self.location.origin;
-const shouldNetworkFirst = request => request.mode === 'navigate' || /\/(index|game|game\.js|save|update|sw)\.js?$/.test(new URL(request.url).pathname) || /\.html?$/.test(new URL(request.url).pathname);
+const shouldNetworkFirst = request => {
+  const path = new URL(request.url).pathname;
+  return request.mode === 'navigate' || /\/(index|game|save|update|build-info)\.js?$/.test(path) || /\.html?$/.test(path);
+};
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE)
-      .then(cache => cache.addAll(ASSETS))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE && key.startsWith('dont-stop-')).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key.startsWith('dont-stop-') && key !== CACHE).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
@@ -39,12 +31,9 @@ self.addEventListener('fetch', event => {
 
   if (shouldNetworkFirst(request)) {
     event.respondWith(
-      fetch(request, { cache: 'no-store' })
+      fetch(request, { cache:'no-store' })
         .then(response => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
-          }
+          if (response.ok) caches.open(CACHE).then(cache => cache.put(request, response.clone())).catch(() => {});
           return response;
         })
         .catch(() => caches.match(request).then(cached => cached || caches.match('./index.html')))
@@ -56,10 +45,7 @@ self.addEventListener('fetch', event => {
     caches.match(request).then(cached => {
       if (cached) return cached;
       return fetch(request).then(response => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
-        }
+        if (response.ok) caches.open(CACHE).then(cache => cache.put(request, response.clone())).catch(() => {});
         return response;
       });
     })
