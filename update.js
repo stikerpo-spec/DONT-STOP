@@ -3,20 +3,11 @@
 
   const REPO = 'stikerpo-spec/DONT-STOP';
   const BRANCH = 'main';
-  const RELEASES = `https://github.com/${REPO}/releases`;
-  const ANDROID_DOWNLOAD = `${RELEASES}/download/android-latest/DONT-STOP.apk`;
-  const WINDOWS_DOWNLOAD = `${RELEASES}/download/windows-latest/DONT-STOP-Setup.exe`;
   const API_URL = `https://api.github.com/repos/${REPO}/commits/${BRANCH}`;
+  const RELEASE_API = `https://api.github.com/repos/${REPO}/releases/tags/`;
   const isNative = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
   if (!isNative) return;
-
-  const escapeHtml = value => String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
 
   function createOverlay() {
     let overlay = document.getElementById('dontStopUpdateOverlay');
@@ -30,7 +21,7 @@
       #dontStopUpdateOverlay p{margin:0 0 20px;color:#aeb6c9;line-height:1.55}
       #dontStopUpdateOverlay .dsu-version{display:inline-flex;margin:0 0 20px;padding:8px 12px;border-radius:999px;background:rgba(109,92,255,.12);border:1px solid rgba(109,92,255,.3);font-size:12px;font-weight:800}
       #dontStopUpdateOverlay .dsu-buttons{display:grid;gap:10px}
-      #dontStopUpdateOverlay button,#dontStopUpdateOverlay a{min-height:48px;border:1px solid rgba(255,255,255,.12);border-radius:15px;padding:13px 16px;font:800 14px inherit;color:#fff;background:rgba(255,255,255,.05);text-decoration:none;cursor:pointer;display:grid;place-items:center}
+      #dontStopUpdateOverlay button{min-height:48px;border:1px solid rgba(255,255,255,.12);border-radius:15px;padding:13px 16px;font:800 14px inherit;color:#fff;background:rgba(255,255,255,.05);cursor:pointer;display:grid;place-items:center}
       #dontStopUpdateOverlay .primary{background:linear-gradient(135deg,#6d5cff,#a04dff);border-color:transparent}
       #dontStopUpdateOverlay .danger{background:rgba(255,78,120,.1);border-color:rgba(255,78,120,.28)}
       #dontStopUpdateOverlay .muted{font-size:11px;color:#727c96;margin-top:12px}
@@ -71,11 +62,33 @@
     return window.DontStopElectronUpdater || null;
   }
 
+  async function resolveReleaseAsset(platform) {
+    const tag = platform === 'android' ? 'android-latest' : 'windows-latest';
+    const response = await fetch(`${RELEASE_API}${tag}?t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { Accept: 'application/vnd.github+json' }
+    });
+    if (!response.ok) throw new Error(`Release ${response.status}`);
+    const release = await response.json();
+    const assets = Array.isArray(release.assets) ? release.assets : [];
+    const pattern = platform === 'android' ? /^DONT-STOP-v.+-build\d+\.apk$/i : /^DONT-STOP-Setup-v.+-build\d+\.exe$/i;
+    const matches = assets.filter(asset => pattern.test(String(asset?.name || '')) && asset?.browser_download_url);
+    if (!matches.length) throw new Error('Kein passender Installer im aktuellen Release gefunden.');
+
+    matches.sort((a, b) => {
+      const na = Number(String(a.name).match(/build(\d+)/i)?.[1] || 0);
+      const nb = Number(String(b.name).match(/build(\d+)/i)?.[1] || 0);
+      return nb - na;
+    });
+
+    return matches[0].browser_download_url;
+  }
+
   async function startNativeInstall(platform, url) {
     if (platform === 'android') {
       const plugin = nativeUpdater();
       if (plugin?.downloadAndInstall) {
-        return plugin.downloadAndInstall({ url, fileName: 'DONT-STOP.apk' });
+        return plugin.downloadAndInstall({ url, fileName: 'DONT-STOP-update.apk' });
       }
     }
 
@@ -86,8 +99,7 @@
       }
     }
 
-    window.open(url, '_blank', 'noopener,noreferrer');
-    return null;
+    throw new Error('Native Update-Installer ist in dieser App-Version nicht verfügbar.');
   }
 
   function showInstalling(platform) {
@@ -95,11 +107,17 @@
     const c = o.querySelector('.dsu-card');
     c.querySelector('h1').textContent = 'Update wird installiert …';
     c.querySelector('p').textContent = platform === 'android'
-      ? 'Die neue Android-Version wird geladen. Danach öffnet sich der System-Installer.'
-      : 'Der neue Windows-Installer wird geladen. DON’T STOP startet danach neu.';
+      ? 'Die neue Android-Version wird direkt heruntergeladen. Danach öffnet sich der System-Installer.'
+      : 'Der neue Windows-Installer wird direkt heruntergeladen und gestartet.';
     c.querySelector('.dsu-version').textContent = 'UPDATE LÄUFT';
-    c.querySelector('.dsu-buttons').innerHTML = `<div class="progress"><div class="bar" id="dontStopUpdateBar"></div></div><button id="dontStopUpdateCancel" class="danger">ABBRECHEN</button>`;
-    document.getElementById('dontStopUpdateCancel').onclick = removeOverlay;
+    c.querySelector('.dsu-buttons').innerHTML = `<div class="progress"><div class="bar" id="dontStopUpdateBar"></div></div>`;
+    const bar = document.getElementById('dontStopUpdateBar');
+    let progress = 8;
+    const timer = setInterval(() => {
+      progress = Math.min(progress + Math.random() * 7, 92);
+      if (bar) bar.style.width = `${progress}%`;
+    }, 350);
+    return () => clearInterval(timer);
   }
 
   async function check() {
@@ -113,11 +131,7 @@
       if (!response.ok) throw new Error(`GitHub ${response.status}`);
       const data = await response.json();
       const remote = String(data.sha || '').trim();
-      if (!remote) throw new Error('Keine Commit-ID');
-
-      // SOURCE_BUILD wird nur aus Quellcode/Preview geladen. In einer echten App
-      // muss die CI den Build-Commit eingesetzt haben; dann funktioniert die Prüfung.
-      if (!local.commit || local.commit === 'SOURCE_BUILD' || local.commit === remote) {
+      if (!remote || !local.commit || local.commit === remote) {
         removeOverlay();
         return;
       }
@@ -128,33 +142,31 @@
         return;
       }
 
-      const isAndroid = platform === 'android';
-      const url = isAndroid ? ANDROID_DOWNLOAD : WINDOWS_DOWNLOAD;
-      const label = isAndroid ? 'UPDATE HERUNTERLADEN & INSTALLIEREN' : 'UPDATE HERUNTERLADEN & INSTALLIEREN';
-
+      const url = await resolveReleaseAsset(platform);
       show({
-        title: 'Update erforderlich',
-        text: 'Eine neue DON’T STOP-Version wurde veröffentlicht. Das Update wird direkt aus der App gestartet.',
-        version: `${escapeHtml(local.version)} → ${escapeHtml(remote.slice(0, 7))}`,
-        buttons: `<button class="primary" id="dontStopUpdateStart">${label}</button><a href="${url}" target="_blank" rel="noopener">Falls nötig: Download manuell öffnen</a>`
+        title: 'Update verfügbar',
+        text: 'Eine neue DON’T STOP-Version wurde veröffentlicht. Das Update kann direkt in der App installiert werden.',
+        version: `${local.version} → NEU`,
+        buttons: `<button class="primary" id="dontStopUpdateStart">UPDATE HERUNTERLADEN & INSTALLIEREN</button>`
       });
 
       document.getElementById('dontStopUpdateStart').onclick = async () => {
+        let stopProgress = () => {};
         try {
-          showInstalling(platform);
+          stopProgress = showInstalling(platform);
           await startNativeInstall(platform, url);
         } catch (error) {
+          stopProgress();
           show({
-            title: 'Update konnte nicht gestartet werden',
-            text: error?.message || 'Der Download/Installer konnte nicht gestartet werden.',
+            title: 'Update konnte nicht installiert werden',
+            text: error?.message || 'Der Download oder die Installation ist fehlgeschlagen.',
             version: 'UPDATE-FEHLER',
-            buttons: `<a class="primary" href="${url}" target="_blank" rel="noopener">UPDATE MANUELL ÖFFNEN</a><button id="dontStopUpdateClose" class="danger">SCHLIESSEN</button>`
+            buttons: `<button id="dontStopUpdateClose" class="danger">SCHLIESSEN</button>`
           });
           document.getElementById('dontStopUpdateClose').onclick = removeOverlay;
         }
       };
     } catch {
-      // Ohne Internet bleibt die zuletzt installierte Version spielbar.
       removeOverlay();
     }
   }
