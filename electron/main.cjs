@@ -5,11 +5,15 @@ const os = require('node:os');
 const { spawn } = require('node:child_process');
 const https = require('node:https');
 
-const ALLOWED_UPDATE_HOSTS = new Set(['github.com', 'objects.githubusercontent.com']);
+const ALLOWED_UPDATE_HOSTS = new Set([
+  'github.com',
+  'objects.githubusercontent.com',
+  'release-assets.githubusercontent.com'
+]);
 
 function downloadFile(url, destination, redirects = 0) {
   return new Promise((resolve, reject) => {
-    if (redirects > 5) return reject(new Error('Zu viele Weiterleitungen beim Update.'));
+    if (redirects > 8) return reject(new Error('Zu viele Weiterleitungen beim Update.'));
 
     let parsed;
     try {
@@ -18,71 +22,77 @@ function downloadFile(url, destination, redirects = 0) {
       return reject(new Error('Ungültige Update-URL.'));
     }
 
-    if (!['https:', 'http:'].includes(parsed.protocol) || !ALLOWED_UPDATE_HOSTS.has(parsed.hostname)) {
+    if (parsed.protocol !== 'https:' || !ALLOWED_UPDATE_HOSTS.has(parsed.hostname)) {
       return reject(new Error('Update-Quelle wurde aus Sicherheitsgründen abgelehnt.'));
     }
 
-    const request = https.get(parsed, { headers: { 'User-Agent': 'DON-T-STOP-Updater' } }, response => {
+    const request = https.get(parsed, {
+      headers: {
+        'User-Agent': 'DONT-STOP-Updater/1.0',
+        Accept: 'application/octet-stream'
+      }
+    }, response => {
       const status = response.statusCode || 0;
       if ([301, 302, 303, 307, 308].includes(status) && response.headers.location) {
         response.resume();
-        return downloadFile(new URL(response.headers.location, parsed).toString(), destination, redirects + 1)
-          .then(resolve, reject);
+        const nextUrl = new URL(response.headers.location, parsed).toString();
+        return downloadFile(nextUrl, destination, redirects + 1).then(resolve, reject);
       }
+
       if (status < 200 || status >= 300) {
         response.resume();
-        return reject(new Error(`GitHub-Download fehlgeschlagen (HTTP ${status}).`));
+        return reject(new Error(`Update-Download fehlgeschlagen (HTTP ${status}).`));
       }
 
       const output = fs.createWriteStream(destination);
-      let finished = false;
+      let settled = false;
       const fail = error => {
-        if (finished) return;
-        finished = true;
+        if (settled) return;
+        settled = true;
         output.destroy();
-        fs.rm(destination, { force: true }, () => {});
+        try { fs.unlinkSync(destination); } catch {}
         reject(error);
       };
 
       response.on('error', fail);
       output.on('error', fail);
       output.on('finish', () => {
-        if (finished) return;
-        finished = true;
+        if (settled) return;
+        settled = true;
         output.close(error => error ? reject(error) : resolve(destination));
       });
       response.pipe(output);
     });
 
     request.on('error', reject);
-    request.setTimeout(120000, () => {
-      request.destroy(new Error('Update-Download ist abgelaufen.'));
-    });
+    request.setTimeout(120000, () => request.destroy(new Error('Update-Download ist abgelaufen.')));
   });
 }
 
 ipcMain.handle('dont-stop:download-and-install', async (_event, updateUrl) => {
-  if (process.platform !== 'win32') {
-    throw new Error('Der Windows-Updater ist nur unter Windows verfügbar.');
+  if (process.platform !== 'win32') throw new Error('Der Windows-Updater ist nur unter Windows verfügbar.');
+
+  let parsed;
+  try {
+    parsed = new URL(updateUrl);
+  } catch {
+    throw new Error('Ungültige Update-URL.');
   }
 
-  const parsed = new URL(updateUrl);
-  if (parsed.hostname !== 'github.com') {
+  if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com') {
     throw new Error('Ungültige Update-Quelle.');
   }
 
   const destination = path.join(os.tmpdir(), `DONT-STOP-update-${Date.now()}.exe`);
   await downloadFile(updateUrl, destination);
 
-  // Starte den NSIS-Installer getrennt und schließe die laufende App zuerst.
   const child = spawn(destination, ['/S'], {
     detached: true,
     stdio: 'ignore',
     windowsHide: true
   });
   child.unref();
-
-  setTimeout(() => app.quit(), 300);
+  setTimeout(() => app.quit(), 500);
   return { started: true };
 });
 
