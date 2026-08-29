@@ -16,7 +16,6 @@
 
   const LANES = 3;
   const DEFAULT_LANE = 1;
-  const RUN_SAVE_KEY = 'activeRun';
   let state = window.DontStopSave.read();
   let lane = Number.isInteger(state.progress?.lane) ? state.progress.lane : DEFAULT_LANE;
   let score = 0;
@@ -27,6 +26,7 @@
   let lastFrame = 0;
   let spawnTimer = 0;
   let coinTimer = 0;
+  let checkpointTimer = 0;
   let raf = 0;
   let objects = [];
   let touchStartX = 0;
@@ -45,29 +45,39 @@
     savePill.textContent = text;
   }
 
-  function persist() {
-    const patch = {
-      bestScore: Math.max(state.bestScore || 0, Math.floor(score)),
-      bestTime: Math.max(state.bestTime || 0, elapsed),
+  function saveActiveRun() {
+    const activeRun = running && !gameOver
+      ? { score: Math.floor(score), elapsed, runCoins, lane, seed }
+      : null;
+    const ok = window.DontStopSave.set({
+      progress: { ...(state.progress || {}), lane, activeRun }
+    });
+    state = window.DontStopSave.read();
+    setSaveStatus(ok ? 'GESPEICHERT' : 'SAVE FEHLER');
+  }
+
+  function finishRunSave() {
+    const finalScore = Math.floor(score);
+    const finalTime = elapsed;
+    const newBest = finalScore > (state.bestScore || 0);
+    const nextBestScore = Math.max(state.bestScore || 0, finalScore);
+    const nextBestTime = Math.max(state.bestTime || 0, finalTime);
+    const nextBestCombo = Math.max(state.bestCombo || 0, 0);
+    const stats = state.statistics || {};
+    const ok = window.DontStopSave.set({
+      bestScore: nextBestScore,
+      bestTime: nextBestTime,
+      bestCombo: nextBestCombo,
       coins: (state.coins || 0) + runCoins,
       statistics: {
-        totalRuns: (state.statistics?.totalRuns || 0) + (gameOver ? 1 : 0),
-        totalTime: (state.statistics?.totalTime || 0) + (gameOver ? elapsed : 0)
+        ...stats,
+        totalTime: (stats.totalTime || 0) + finalTime
       },
-      progress: {
-        ...(state.progress || {}),
-        lane,
-        activeRun: running && !gameOver ? { score, elapsed, runCoins, lane, seed } : null
-      }
-    };
-    const ok = window.DontStopSave.set(patch);
-    if (ok) {
-      state = window.DontStopSave.read();
-      setSaveStatus('GESPEICHERT');
-      updateHud();
-    } else {
-      setSaveStatus('SAVE FEHLER');
-    }
+      progress: { ...(state.progress || {}), lane, activeRun: null }
+    });
+    state = window.DontStopSave.read();
+    setSaveStatus(ok ? 'GESPEICHERT' : 'SAVE FEHLER');
+    return newBest;
   }
 
   function positionPlayer() {
@@ -80,8 +90,6 @@
     if (next !== lane) {
       lane = next;
       positionPlayer();
-      state.progress = state.progress || {};
-      state.progress.lane = lane;
       setSaveStatus('GEÄNDERT');
     }
   }
@@ -93,8 +101,7 @@
     el.style.transform = 'translateX(-50%)';
     el.style.top = '-70px';
     arena.appendChild(el);
-    const obj = { el, type, lane: laneIndex, y: -70, collected: false };
-    objects.push(obj);
+    objects.push({ el, type, lane: laneIndex, y: -70, collected: false });
   }
 
   function clearObjects() {
@@ -108,9 +115,13 @@
 
   function spawnObstacle() {
     const safeLane = Math.floor(Math.random() * LANES);
-    const count = elapsed > 18 && Math.random() < 0.24 ? 2 : 1;
-    const lanes = [0, 1, 2].filter(x => x !== safeLane);
-    for (let i = 0; i < count; i++) createObject('obstacle', count === 1 ? Math.floor(Math.random() * LANES) : lanes[i]);
+    const double = elapsed > 18 && Math.random() < 0.24;
+    if (double) {
+      const lanes = [0, 1, 2].filter(x => x !== safeLane);
+      lanes.forEach(laneIndex => createObject('obstacle', laneIndex));
+    } else {
+      createObject('obstacle', Math.floor(Math.random() * LANES));
+    }
   }
 
   function spawnCoin() {
@@ -130,9 +141,7 @@
     gameOver = true;
     cancelAnimationFrame(raf);
     clearObjects();
-    const newBest = Math.floor(score) > (state.bestScore || 0);
-    state.bestScore = Math.max(state.bestScore || 0, Math.floor(score));
-    persist();
+    const newBest = finishRunSave();
     overlay.classList.remove('hidden');
     overlayText.innerHTML = `${newBest ? '<strong>🏆 NEUER REKORD!</strong><br>' : ''}Score: <strong>${format(score)}</strong><br>Überlebt: <strong>${elapsed.toFixed(1)} s</strong><br>Coins: <strong>+${runCoins}</strong>`;
     startBtn.hidden = false;
@@ -147,21 +156,30 @@
     gameOver = false;
     running = true;
     overlay.classList.add('hidden');
-    lane = resume ? lane : DEFAULT_LANE;
+    lane = resume ? clamp(Number(state.progress?.activeRun?.lane ?? state.progress?.lane ?? DEFAULT_LANE), 0, LANES - 1) : DEFAULT_LANE;
     score = resume ? Number(state.progress?.activeRun?.score || 0) : 0;
     elapsed = resume ? Number(state.progress?.activeRun?.elapsed || 0) : 0;
     runCoins = resume ? Number(state.progress?.activeRun?.runCoins || 0) : 0;
     seed = resume ? state.progress?.activeRun?.seed ?? null : Math.floor(Math.random() * 2_147_483_647);
+    checkpointTimer = 0;
     lastFrame = performance.now();
     spawnTimer = 0.35;
     coinTimer = 0.8;
     positionPlayer();
     updateHud();
+
     if (!resume) {
-      const nextRuns = (state.statistics?.totalRuns || 0) + 1;
-      window.DontStopSave.set({ statistics: { ...(state.statistics || {}), totalRuns: nextRuns }, progress: { ...(state.progress || {}), activeRun: { score: 0, elapsed: 0, runCoins: 0, lane, seed } } });
+      const stats = state.statistics || {};
+      window.DontStopSave.set({
+        statistics: { ...stats, totalRuns: (stats.totalRuns || 0) + 1 },
+        progress: {
+          ...(state.progress || {}),
+          activeRun: { score: 0, elapsed: 0, runCoins: 0, lane, seed }
+        }
+      });
       state = window.DontStopSave.read();
     }
+    setSaveStatus('GESPEICHERT');
     raf = requestAnimationFrame(loop);
   }
 
@@ -173,6 +191,7 @@
     score += dt * (100 + elapsed * 1.8);
     spawnTimer -= dt;
     coinTimer -= dt;
+    checkpointTimer -= dt;
 
     if (spawnTimer <= 0) {
       spawnObstacle();
@@ -204,35 +223,35 @@
       }
     }
 
-    if (Math.floor(elapsed * 10) % 10 === 0) {
-      updateHud();
-      persist();
-    } else {
-      updateHud();
+    updateHud();
+    if (checkpointTimer <= 0) {
+      saveActiveRun();
+      checkpointTimer = 1;
     }
     raf = requestAnimationFrame(loop);
   }
 
-  function saveActiveRun() {
-    if (!running || gameOver) {
-      window.DontStopSave.saveImmediately();
-      return;
-    }
-    window.DontStopSave.set({
-      progress: {
-        ...(state.progress || {}),
-        lane,
-        activeRun: { score: Math.floor(score), elapsed, runCoins, lane, seed }
-      }
-    });
-    setSaveStatus('GESPEICHERT');
+  function pauseRun() {
+    if (!running) return;
+    saveActiveRun();
+    running = false;
+    cancelAnimationFrame(raf);
+    overlay.classList.remove('hidden');
+    overlayText.textContent = 'Run pausiert. Dein Fortschritt wurde gespeichert.';
+    startBtn.hidden = true;
+    resumeBtn.hidden = false;
+  }
+
+  function saveOnClose() {
+    if (running && !gameOver) saveActiveRun();
+    else window.DontStopSave.saveImmediately();
   }
 
   function detectResume() {
     const active = state.progress?.activeRun;
     if (active && Number(active.elapsed) > 0) {
       resumeBtn.hidden = false;
-      overlayText.textContent = `Du hast einen gespeicherten Run: ${active.elapsed.toFixed(1)} Sekunden und ${format(active.score)} Punkte.`;
+      overlayText.textContent = `Du hast einen gespeicherten Run: ${Number(active.elapsed).toFixed(1)} Sekunden und ${format(active.score)} Punkte.`;
     }
   }
 
@@ -242,9 +261,10 @@
   rightBtn.addEventListener('click', () => move(1));
 
   window.addEventListener('keydown', event => {
-    if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') { event.preventDefault(); move(-1); }
-    if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') { event.preventDefault(); move(1); }
-    if (event.key === 'Escape' && running) { saveActiveRun(); running = false; overlay.classList.remove('hidden'); overlayText.textContent = 'Run pausiert. Dein Fortschritt wurde gespeichert.'; startBtn.hidden = true; resumeBtn.hidden = false; cancelAnimationFrame(raf); }
+    const key = event.key.toLowerCase();
+    if (event.key === 'ArrowLeft' || key === 'a') { event.preventDefault(); move(-1); }
+    if (event.key === 'ArrowRight' || key === 'd') { event.preventDefault(); move(1); }
+    if (event.key === 'Escape' && running) pauseRun();
   });
 
   arena.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0]?.clientX || 0; }, { passive: true });
@@ -255,10 +275,10 @@
   }, { passive: true });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') saveActiveRun();
+    if (document.visibilityState === 'hidden') saveOnClose();
   });
-  window.addEventListener('pagehide', saveActiveRun);
-  window.addEventListener('beforeunload', saveActiveRun);
+  window.addEventListener('pagehide', saveOnClose);
+  window.addEventListener('beforeunload', saveOnClose);
 
   state = window.DontStopSave.read();
   positionPlayer();
