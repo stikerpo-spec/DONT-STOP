@@ -1,4 +1,4 @@
-const CACHE = 'dont-stop-v2';
+const CACHE = 'dont-stop-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,8 @@ const ASSETS = [
   './manifest.webmanifest',
   './icon.svg'
 ];
+
+const isSameOrigin = (request) => new URL(request.url).origin === self.location.origin;
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -26,17 +28,34 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+  const request = event.request;
+  if (request.method !== 'GET' || !isSameOrigin(request)) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then(cache => cache.put('./index.html', copy)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
 
   event.respondWith(
-    caches.match(event.request).then(cached => {
+    caches.match(request).then(cached => {
       if (cached) return cached;
-      return fetch(event.request).then(response => {
-        if (!response || !response.ok || response.type === 'opaque') return response;
-        const copy = response.clone();
-        caches.open(CACHE).then(cache => cache.put(event.request, copy)).catch(() => {});
+      return fetch(request).then(response => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
+        }
         return response;
-      }).catch(() => caches.match('./index.html'));
+      });
     })
   );
 });
