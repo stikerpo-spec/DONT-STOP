@@ -39,15 +39,23 @@ jobs:
           name: DONT-STOP-Windows
           path: dist/DONT-STOP-Setup.exe
           if-no-files-found: error
+          overwrite: true
 
       - name: Publish Windows release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $ErrorActionPreference = 'Stop'
           $tag = 'windows-latest'
-          if (gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload $tag 'dist/DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY --clobber
+          $repo = $env:GITHUB_REPOSITORY
+
+          if (gh release view $tag --repo $repo 2>$null) {
+            $assetId = gh release view $tag --repo $repo --json assets --jq '.assets[] | select(.name=="DONT-STOP-Setup.exe") | .id' | Select-Object -First 1
+            if ($assetId) {
+              gh api --method DELETE "repos/$repo/releases/assets/$assetId"
+            }
+            gh release upload $tag 'dist/DONT-STOP-Setup.exe' --repo $repo
           } else {
-            gh release create $tag 'dist/DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY --title 'DONT STOP Windows' --notes 'Aktueller realistischer 3D-Windows-Installer von DONT STOP.' --latest=false
+            gh release create $tag 'dist/DONT-STOP-Setup.exe' --repo $repo --title 'DONT STOP Windows' --notes 'Aktueller realistischer 3D-Windows-Installer von DONT STOP.' --latest=false
           }
