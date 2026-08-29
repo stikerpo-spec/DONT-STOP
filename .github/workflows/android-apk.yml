@@ -23,11 +23,14 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Create build metadata
+        run: printf "window.DontStopBuild = { version: '%s', commit: '%s' };\n" "1.0.5" "${GITHUB_SHA}" > build-info.js
+
       - name: Prepare web build directory
         run: |
           rm -rf www
           mkdir -p www
-          cp index.html game.html game.js save.js update.js sw.js manifest.webmanifest icon.svg www/
+          cp index.html game.html game.js save.js sw.js update.js build-info.js manifest.webmanifest icon.svg www/
 
       - name: Create Android project
         run: npx cap add android
@@ -64,7 +67,14 @@ jobs:
         run: |
           TAG="android-latest"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --clobber
+            if gh release upload "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --clobber; then
+              echo "Android release updated."
+            elif gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq 'DONT-STOP.apk'; then
+              echo "APK is already present after upload attempt."
+            else
+              echo "Android release upload failed."
+              exit 1
+            fi
           else
             gh release create "$TAG" DONT-STOP.apk \
               --repo "$GITHUB_REPOSITORY" \
