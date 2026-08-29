@@ -1,1 +1,1 @@
-window.DontStopBuild = { version: '1.0.5', commit: 'SOURCE_BUILD' };
+window.DontStopBuild = { version: '1.0.5', commit: '4c52f39b7bf47fd89ee2842bcd7fabb3fdc8f88f' };
