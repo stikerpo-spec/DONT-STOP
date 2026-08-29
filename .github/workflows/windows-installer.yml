@@ -23,6 +23,10 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Create build metadata
+        shell: pwsh
+        run: Set-Content -Path build-info.js -Value "window.DontStopBuild = { version: '1.0.5', commit: '${env:GITHUB_SHA}' };"
+
       - name: Build Windows installer
         run: npm run desktop:build
 
@@ -40,7 +44,14 @@ jobs:
         run: |
           $tag = "windows-latest"
           if (gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload $tag dist/DONT-STOP-Setup.exe --repo $env:GITHUB_REPOSITORY --clobber
+            if (gh release upload $tag dist/DONT-STOP-Setup.exe --repo $env:GITHUB_REPOSITORY --clobber) {
+              Write-Host "Windows release updated."
+            } elseif (gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets --jq '.assets[].name' | Select-String -SimpleMatch 'DONT-STOP-Setup.exe') {
+              Write-Host "Installer is already present after upload attempt."
+            } else {
+              Write-Error "Windows release upload failed."
+              exit 1
+            }
           } else {
             gh release create $tag dist/DONT-STOP-Setup.exe `
               --repo $env:GITHUB_REPOSITORY `
