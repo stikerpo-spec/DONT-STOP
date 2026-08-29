@@ -28,14 +28,14 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('fs');
-          fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '1.2.0', commit: '${process.env.GITHUB_SHA}' };\n`);
+          fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '1.3.0', commit: '${process.env.GITHUB_SHA}' };\n`);
           NODE
 
       - name: Prepare web files
         run: |
           rm -rf www
           mkdir -p www
-          cp index.html game.html game.js save.js auth.js sw.js update.js build-info.js manifest.webmanifest icon.svg www/
+          cp index.html game.html game.js save.js auth.js realism.js sw.js update.js build-info.js manifest.webmanifest icon.svg www/
 
       - name: Create Android project
         run: npx cap add android
