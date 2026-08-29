@@ -8,16 +8,13 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <title>DON’T STOP</title>
+  <script src="./build-info.js"></script>
   <script>
-    (() => {
-      const native = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-      if (native) document.documentElement.classList.add('is-native-app');
-    })();
+    (() => { const native = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1'; if (native) document.documentElement.classList.add('is-native-app'); })();
   </script>
   <style>
     :root{--panel:rgba(18,22,40,.86);--line:rgba(255,255,255,.11);--text:#f7f9ff;--muted:#a8b0c8;--accent:#6d5cff;--good:#20e3b2;--gold:#ffe27a}
-    *{box-sizing:border-box}
-    html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 0%,#171735 0,#090b16 42%,#05060c 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 0%,#171735 0,#090b16 42%,#05060c 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     body{min-height:100svh;padding:18px}.shell{width:min(1060px,100%);margin:0 auto}.glow{position:fixed;inset:-30%;background:radial-gradient(circle,rgba(109,92,255,.13),transparent 60%);pointer-events:none;filter:blur(22px)}
     .card{position:relative;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(22px);border-radius:28px;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,.45)}
     .brand{display:flex;align-items:center;gap:16px}.logo{width:70px;height:70px;border-radius:18px;box-shadow:0 10px 30px rgba(109,92,255,.3)}h1{margin:0;font-size:clamp(2.4rem,6vw,4.4rem);letter-spacing:-.05em}.tag{display:inline-flex;margin-top:8px;padding:6px 10px;border-radius:999px;background:rgba(32,227,178,.1);border:1px solid rgba(32,227,178,.2);color:#8af5d7;font-size:.82rem;font-weight:800}p{color:var(--muted);line-height:1.65}
@@ -30,29 +27,21 @@
   </style>
 </head>
 <body>
-  <div class="glow"></div>
-  <main class="shell"><section class="card">
+  <div class="glow"></div><main class="shell"><section class="card">
     <div class="brand"><img class="logo" src="./icon.svg" alt="DON’T STOP"><div><h1>DON’T STOP</h1><span class="tag">AUSWEICHEN • COINS • LEVELS</span></div></div>
-
-    <div class="hero">
-      <h2>Weiche aus. Sammle Coins. Bleib im Run.</h2>
-      <p>Weiche den Hindernissen aus. Für jedes erfolgreich vermiedene Hindernis bekommst du 1 Coin. Die Level-Auswahl ist ausschließlich im Hauptmenü der installierten App verfügbar.</p>
-    </div>
-
+    <div class="hero"><h2>Weiche aus. Sammle Coins. Bleib im Run.</h2><p>Weiche den Hindernissen aus. Für jedes erfolgreich vermiedene Hindernis bekommst du 1 Coin.</p></div>
     <section class="app-only">
       <div class="coins"><span>Deine Coins</span><b class="coin-number">🪙 <span id="coinBalance">0</span></b></div>
       <section class="levels" id="levels"></section>
       <a class="btn primary app-only-inline" style="width:100%;margin-top:16px" href="./game.html">▶ Ausgewähltes Level spielen</a>
-      <div id="status" class="info">Level 1 ist kostenlos. Spiele und sammle Coins für neue Level.</div>
+      <div id="status" class="info">Die Level-Auswahl und dein Spielstand sind nur in der App verfügbar.</div>
       <div class="save"><div class="save-row"><span>Lokaler Spielstand: <span id="saveState" class="pill">wird geprüft …</span></span><button id="testSave" class="btn">Speicherung testen</button></div></div>
     </section>
-
     <div class="platforms">
       <div class="platform"><h2>🖥️ Windows-PC</h2><p>Installiere die aktuelle Windows-Version von DON’T STOP.</p><a class="btn primary" href="https://github.com/stikerpo-spec/DONT-STOP/releases/download/windows-latest/DONT-STOP-Setup.exe">Windows-Installer herunterladen</a><div class="alt"><a href="https://github.com/stikerpo-spec/DONT-STOP/releases/tag/windows-latest" target="_blank" rel="noopener">Release öffnen</a></div></div>
       <div class="platform"><h2>📱 Android</h2><p>Lade die aktuelle APK herunter und installiere DON’T STOP auf deinem Smartphone.</p><a class="btn" href="https://github.com/stikerpo-spec/DONT-STOP/releases/download/android-latest/DONT-STOP.apk">Android-APK herunterladen</a><div class="alt"><a href="https://github.com/stikerpo-spec/DONT-STOP/releases/tag/android-latest" target="_blank" rel="noopener">Release öffnen</a></div></div>
     </div>
-
-    <div class="info">Auf der Website gibt es keine Level-Auswahl und keinen Spielstand. Die eigentliche Level-Auswahl gehört ausschließlich ins Hauptmenü der installierten App.</div>
+    <div class="info">Die Website ist nur für Infos und Downloads. Level-Auswahl, Coins und Spielstand gehören ausschließlich ins Hauptmenü der installierten App.</div>
     <div class="footer">DON’T STOP • jeder vermiedene Treffer = 1 Coin</div>
   </section></main>
   <script src="./save.js"></script>
@@ -60,20 +49,17 @@
     (() => {
       if (!document.documentElement.classList.contains('is-native-app')) return;
       const levelData={1:{name:'NORMAL',cost:0,desc:'Ruhiges Tempo. Perfekt zum Start.'},2:{name:'SCHNELL',cost:10,desc:'Schneller und erste Doppel-Hindernisse.'},3:{name:'HART',cost:30,desc:'Weniger Zeit zum Reagieren.'},4:{name:'EXTREM',cost:60,desc:'Sehr schnell und dichteres Muster.'},5:{name:'CHAOS',cost:100,desc:'Maximale Herausforderung.'}};
-      const state=window.DontStopSave.read();
+      let state=window.DontStopSave.read();
       const selected=Math.min(5,Math.max(1,Number(state.selectedLevel||1)));
       const unlocked=new Set((state.unlockedLevels||[1]).map(Number));
-      const levelsEl=document.getElementById('levels');
-      const balance=document.getElementById('coinBalance');
-      const status=document.getElementById('status');
+      const levelsEl=document.getElementById('levels'); const balance=document.getElementById('coinBalance'); const status=document.getElementById('status');
       balance.textContent=Number(state.coins||0).toLocaleString('de-DE');
       for(const [id,info] of Object.entries(levelData)){
-        const level=Number(id), card=document.createElement('div'); card.className='level'+(level===selected?' active':'');
-        const canUnlock=unlocked.has(level);
+        const level=Number(id), card=document.createElement('div'); card.className='level'+(level===selected?' active':''); const canUnlock=unlocked.has(level);
         card.innerHTML=`<h2>Level ${level}</h2><b>${info.name}</b><div class="desc">${info.desc}</div><div class="price">${info.cost===0?'KOSTENLOS':'🪙 '+info.cost+' Coins'}</div>`;
         const btn=document.createElement('button'); btn.className='btn '+(canUnlock?'primary':'');
         if(canUnlock){btn.textContent=level===selected?'AUSGEWÄHLT':'AUSWÄHLEN'; btn.onclick=()=>{if(window.DontStopSave.set({selectedLevel:level})) location.reload();};}
-        else{btn.textContent=`FREISCHALTEN • ${info.cost} 🪙`; btn.disabled=Number(state.coins||0)<info.cost; btn.onclick=()=>{const latest=window.DontStopSave.read(); if(Number(latest.coins||0)<info.cost)return; const levels=new Set((latest.unlockedLevels||[1]).map(Number)); levels.add(level); if(window.DontStopSave.set({coins:Number(latest.coins||0)-info.cost,unlockedLevels:[...levels],selectedLevel:level})) location.reload();};}
+        else{btn.textContent=`FREISCHALTEN • ${info.cost} 🪙`; btn.disabled=Number(state.coins||0)<info.cost; btn.onclick=()=>{state=window.DontStopSave.read(); if(Number(state.coins||0)<info.cost)return; const levels=new Set((state.unlockedLevels||[1]).map(Number)); levels.add(level); if(window.DontStopSave.set({coins:Number(state.coins||0)-info.cost,unlockedLevels:[...levels],selectedLevel:level})) location.reload();};}
         card.appendChild(btn); levelsEl.appendChild(card);
       }
       document.getElementById('saveState').textContent='bereit ✓';
