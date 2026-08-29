@@ -28,7 +28,7 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('fs');
-          fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '1.0.5', commit: '${process.env.GITHUB_SHA}' };\n`);
+          fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '1.0.6', commit: '${process.env.GITHUB_SHA}' };\n`);
           NODE
 
       - name: Prepare web files
