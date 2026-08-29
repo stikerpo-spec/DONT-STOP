@@ -24,14 +24,25 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Create build metadata
+      - name: Read app version
+        id: version
         shell: pwsh
         run: |
           $version = node -p "require('./package.json').version"
-          Set-Content -Path build-info.js -Value "window.DontStopBuild = { version: '$version', commit: '${env:GITHUB_SHA}' };"
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "APP_VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Create build metadata
+        shell: pwsh
+        run: |
+          Set-Content -Path build-info.js -Value "window.DontStopBuild = { version: '$env:APP_VERSION', commit: '${env:GITHUB_SHA}' };"
 
       - name: Build Windows installer
         run: npm run desktop:build
+
+      - name: Rename installer
+        shell: pwsh
+        run: Copy-Item 'dist/DONT-STOP-Setup.exe' "dist/DONT-STOP-Setup-v$env:APP_VERSION-build${env:GITHUB_RUN_NUMBER}.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -49,13 +60,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $tag = 'windows-latest'
           $repo = $env:GITHUB_REPOSITORY
+          $asset = "dist/DONT-STOP-Setup-v$env:APP_VERSION-build$env:GITHUB_RUN_NUMBER.exe"
 
           if (gh release view $tag --repo $repo 2>$null) {
-            $assetId = gh release view $tag --repo $repo --json assets --jq '.assets[] | select(.name=="DONT-STOP-Setup.exe") | .id' | Select-Object -First 1
-            if ($assetId) {
-              gh api --method DELETE "repos/$repo/releases/assets/$assetId"
-            }
-            gh release upload $tag 'dist/DONT-STOP-Setup.exe' --repo $repo
+            gh release upload $tag $asset --repo $repo
           } else {
-            gh release create $tag 'dist/DONT-STOP-Setup.exe' --repo $repo --title 'DONT STOP Windows' --notes 'Aktueller realistischer 3D-Windows-Installer von DONT STOP.' --latest=false
+            gh release create $tag $asset --repo $repo --title 'DONT STOP Windows' --notes 'Aktueller realistischer 3D-Windows-Installer von DONT STOP.' --latest=false
           }
