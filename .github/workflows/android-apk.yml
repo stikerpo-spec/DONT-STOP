@@ -32,6 +32,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create build metadata
+        shell: bash
         run: |
           node <<'NODE'
           const fs = require('fs');
@@ -40,22 +41,29 @@ jobs:
           NODE
 
       - name: Prepare web files
+        shell: bash
         run: |
           rm -rf www
           mkdir -p www
           cp index.html game.html game.js save.js auth.js realism.js sw.js update.js build-info.js manifest.webmanifest icon.svg www/
 
       - name: Create Android project
+        shell: bash
         run: npx cap add android
 
       - name: Install native in-app updater
+        shell: bash
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
         run: |
           MAIN_ACTIVITY=$(find android/app/src/main/java -name MainActivity.java | head -n 1)
           test -n "$MAIN_ACTIVITY"
           JAVA_DIR=$(dirname "$MAIN_ACTIVITY")
+          PACKAGE_PATH=$(dirname "$MAIN_ACTIVITY")
           cp native/android/DontStopUpdater.java "$JAVA_DIR/DontStopUpdater.java"
           mkdir -p android/app/src/main/res/xml
           cp native/android/file_paths.xml android/app/src/main/res/xml/file_paths.xml
+
           python3 - <<'PY'
           from pathlib import Path
           import os
@@ -63,22 +71,33 @@ jobs:
 
           main = next(Path('android/app/src/main/java').rglob('MainActivity.java'))
           text = main.read_text()
-          if 'import com.stikerpo.dontstop.DontStopUpdater;' not in text:
-              text = text.replace('import com.getcapacitor.BridgeActivity;', 'import com.getcapacitor.BridgeActivity;\nimport com.stikerpo.dontstop.DontStopUpdater;')
+          import_line = 'import com.stikerpo.dontstop.DontStopUpdater;'
+          if import_line not in text:
+              marker = 'import com.getcapacitor.BridgeActivity;'
+              if marker not in text:
+                  raise SystemExit('BridgeActivity-Import in MainActivity.java nicht gefunden.')
+              text = text.replace(marker, marker + '\n' + import_line)
           if 'registerPlugin(DontStopUpdater.class);' not in text:
-              text = text.replace('public class MainActivity extends BridgeActivity {', 'public class MainActivity extends BridgeActivity {\n    @Override\n    public void onCreate(android.os.Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        registerPlugin(DontStopUpdater.class);\n    }')
+              marker = 'public class MainActivity extends BridgeActivity {'
+              if marker not in text:
+                  raise SystemExit('MainActivity-Klasse nicht gefunden.')
+              text = text.replace(marker, marker + '''\n    @Override\n    public void onCreate(android.os.Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        registerPlugin(DontStopUpdater.class);\n    }''')
           main.write_text(text)
 
           manifest = Path('android/app/src/main/AndroidManifest.xml')
           text = manifest.read_text()
           permission = '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
           if permission not in text:
-              first_close = text.find('>')
-              if first_close == -1:
-                  raise SystemExit('AndroidManifest.xml hat keinen gültigen Manifest-Start.')
-              text = text[:first_close + 1] + '\n    ' + permission + text[first_close + 1:]
+              match = re.search(r'<manifest\\b[^>]*>', text)
+              if not match:
+                  raise SystemExit('AndroidManifest.xml: <manifest>-Element nicht gefunden.')
+              insert_at = match.end()
+              text = text[:insert_at] + '\n    ' + permission + text[insert_at:]
+
           provider = '''\n        <provider\n            android:name="androidx.core.content.FileProvider"\n            android:authorities="${applicationId}.fileprovider"\n            android:exported="false"\n            android:grantUriPermissions="true">\n            <meta-data\n                android:name="android.support.FILE_PROVIDER_PATHS"\n                android:resource="@xml/file_paths" />\n        </provider>'''
           if 'androidx.core.content.FileProvider' not in text:
+              if '</application>' not in text:
+                  raise SystemExit('AndroidManifest.xml: </application> nicht gefunden.')
               text = text.replace('</application>', provider + '\n    </application>')
           manifest.write_text(text)
 
@@ -86,30 +105,37 @@ jobs:
           text = gradle.read_text()
           version_code = 1000 + int(os.environ['GITHUB_RUN_NUMBER'])
           version_name = os.environ['APP_VERSION']
-          text = re.sub(r'(?m)^\s*versionCode\s+\d+', f'        versionCode {version_code}', text)
-          text = re.sub(r'(?m)^\s*versionName\s+"[^"]+"', f'        versionName "{version_name}"', text)
+          text, code_count = re.subn(r'(?m)^\s*versionCode\s+\d+', f'        versionCode {version_code}', text, count=1)
+          if code_count != 1:
+              raise SystemExit('build.gradle: versionCode nicht gefunden.')
+          text, name_count = re.subn(r'(?m)^\s*versionName\s+"[^"]+"', f'        versionName "{version_name}"', text, count=1)
+          if name_count != 1:
+              raise SystemExit('build.gradle: versionName nicht gefunden.')
           gradle.write_text(text)
           PY
-        env:
-          APP_VERSION: ${{ steps.version.outputs.version }}
 
       - name: Sync Android project
+        shell: bash
         run: npx cap sync android
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
 
       - name: Build APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        shell: bash
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Prepare APK
+        shell: bash
         run: cp android/app/build/outputs/apk/debug/app-debug.apk DONT-STOP.apk
 
       - name: Upload artifact
@@ -118,14 +144,21 @@ jobs:
           name: DONT-STOP-Android
           path: DONT-STOP.apk
           if-no-files-found: error
+          overwrite: true
 
       - name: Publish Android release
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
+          set -euo pipefail
           TAG=android-latest
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --clobber
+            ASSET_ID=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[] | select(.name=="DONT-STOP.apk") | .id' | head -n 1)
+            if [ -n "${ASSET_ID:-}" ]; then
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID"
+            fi
+            gh release upload "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY"
           else
             gh release create "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --title "DONT STOP Android" --notes "Aktueller 3D-Android-Installer von DONT STOP." --latest=false
           fi
