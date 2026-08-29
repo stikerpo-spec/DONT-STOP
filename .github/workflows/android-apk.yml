@@ -1,15 +1,16 @@
-name: Build DON’T STOP Android APK
+name: Build DONT STOP Android
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-android:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,9 +25,9 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Create build metadata
-        run: printf "window.DontStopBuild = { version: '%s', commit: '%s' };\n" "1.0.5" "${GITHUB_SHA}" > build-info.js
+        run: node -e "require('fs').writeFileSync('build-info.js', \"window.DontStopBuild = { version: '1.0.5', commit: '\" + process.env.GITHUB_SHA + \"' };\\n\")"
 
-      - name: Prepare web build directory
+      - name: Prepare web files
         run: |
           rm -rf www
           mkdir -p www
@@ -35,7 +36,7 @@ jobs:
       - name: Create Android project
         run: npx cap add android
 
-      - name: Sync web app into Android
+      - name: Sync Android project
         run: npx cap sync android
 
       - name: Setup Java
@@ -54,31 +55,23 @@ jobs:
       - name: Prepare APK
         run: cp android/app/build/outputs/apk/debug/app-debug.apk DONT-STOP.apk
 
-      - name: Upload workflow artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: DONT-STOP-Android
           path: DONT-STOP.apk
           if-no-files-found: error
 
-      - name: Publish stable Android download
+      - name: Publish Android release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="android-latest"
+          TAG=android-latest
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            if gh release upload "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --clobber; then
-              echo "Android release updated."
-            elif gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq 'DONT-STOP.apk'; then
-              echo "APK is already present after upload attempt."
-            else
-              echo "Android release upload failed."
-              exit 1
+            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq 'DONT-STOP.apk'; then
+              gh release delete-asset "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --yes
             fi
+            gh release upload "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$TAG" DONT-STOP.apk \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "DON’T STOP Android" \
-              --notes "Aktueller Android-Installer von DON’T STOP." \
-              --latest=false
+            gh release create "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --title "DONT STOP Android" --notes "Aktueller Android-Installer von DONT STOP." --latest=false
           fi
