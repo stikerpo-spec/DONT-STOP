@@ -52,10 +52,11 @@ jobs:
         shell: bash
         run: npx cap add android
 
-      - name: Install native in-app updater
+      - name: Install native updater and signing configuration
         shell: bash
         env:
           APP_VERSION: ${{ steps.version.outputs.version }}
+          SIGNING_STORE_FILE: ${{ runner.temp }}/dontstop-release.jks
         run: |
           MAIN_ACTIVITY=$(find android/app/src/main/java -name MainActivity.java | head -n 1)
           test -n "$MAIN_ACTIVITY"
@@ -63,6 +64,8 @@ jobs:
           cp native/android/DontStopUpdater.java "$JAVA_DIR/DontStopUpdater.java"
           mkdir -p android/app/src/main/res/xml
           cp native/android/file_paths.xml android/app/src/main/res/xml/file_paths.xml
+          base64 -d native/android/dontstop-release.jks.b64 > "$SIGNING_STORE_FILE"
+          test -s "$SIGNING_STORE_FILE"
 
           python3 - <<'PY'
           from pathlib import Path
@@ -91,10 +94,11 @@ jobs:
               match = re.search(r'<manifest\b[^>]*>', text)
               if not match:
                   raise SystemExit('AndroidManifest.xml: <manifest>-Element nicht gefunden.')
-              insert_at = match.end()
-              text = text[:insert_at] + '\n    ' + permission + text[insert_at:]
+              text = text[:match.end()] + '\n    ' + permission + text[match.end():]
           provider = '''\n        <provider\n            android:name="androidx.core.content.FileProvider"\n            android:authorities="${applicationId}.fileprovider"\n            android:exported="false"\n            android:grantUriPermissions="true">\n            <meta-data\n                android:name="android.support.FILE_PROVIDER_PATHS"\n                android:resource="@xml/file_paths" />\n        </provider>'''
           if 'androidx.core.content.FileProvider' not in text:
+              if '</application>' not in text:
+                  raise SystemExit('AndroidManifest.xml: </application> nicht gefunden.')
               text = text.replace('</application>', provider + '\n    </application>')
           manifest.write_text(text)
 
@@ -107,6 +111,16 @@ jobs:
           text, count = re.subn(r'(?m)^\s*versionName\s+"[^"]+"', f'        versionName "{os.environ["APP_VERSION"]}"', text, count=1)
           if count != 1:
               raise SystemExit('build.gradle: versionName nicht gefunden.')
+
+          signing = '''    signingConfigs {\n        release {\n            storeFile file(System.getenv("SIGNING_STORE_FILE"))\n            storePassword System.getenv("SIGNING_STORE_PASSWORD")\n            keyAlias System.getenv("SIGNING_KEY_ALIAS")\n            keyPassword System.getenv("SIGNING_KEY_PASSWORD")\n        }\n    }\n\n'''
+          if 'signingConfigs {' not in text:
+              marker = '    buildTypes {'
+              if marker not in text:
+                  raise SystemExit('build.gradle: buildTypes nicht gefunden.')
+              text = text.replace(marker, signing + marker, 1)
+          text, count = re.subn(r'(?s)(buildTypes\s*\{\s*release\s*\{)', r'\1\n            signingConfig signingConfigs.release', text, count=1)
+          if count != 1:
+              raise SystemExit('build.gradle: release signingConfig konnte nicht gesetzt werden.')
           gradle.write_text(text)
           PY
 
@@ -125,19 +139,32 @@ jobs:
         with:
           accept-android-sdk-licenses: true
 
-      - name: Build APK
+      - name: Build signed APK
         working-directory: android
         shell: bash
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        env:
+          SIGNING_STORE_FILE: ${{ runner.temp }}/dontstop-release.jks
+          SIGNING_STORE_PASSWORD: dontstop-dev-2026
+          SIGNING_KEY_ALIAS: dontstop
+          SIGNING_KEY_PASSWORD: dontstop-dev-2026
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Verify APK signing
+        shell: bash
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
+          "$APKSIGNER" verify --verbose "$APK"
 
       - name: Prepare APK
         shell: bash
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk "DONT-STOP-v${APP_VERSION}-build${GITHUB_RUN_NUMBER}.apk"
+        run: cp android/app/build/outputs/apk/release/app-release.apk "DONT-STOP-v${APP_VERSION}-build${GITHUB_RUN_NUMBER}.apk"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DONT-STOP-Android
+          name: DONT-STOP-Android-${{ github.run_number }}
           path: "DONT-STOP-v${{ env.APP_VERSION }}-build${{ github.run_number }}.apk"
           if-no-files-found: error
           overwrite: true
