@@ -30,6 +30,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Create build metadata
         shell: bash
@@ -71,13 +72,13 @@ jobs:
           main = next(Path('android/app/src/main/java').rglob('MainActivity.java'))
           text = main.read_text()
           import_line = 'import com.stikerpo.dontstop.DontStopUpdater;'
+          marker = 'import com.getcapacitor.BridgeActivity;'
           if import_line not in text:
-              marker = 'import com.getcapacitor.BridgeActivity;'
               if marker not in text:
                   raise SystemExit('BridgeActivity-Import in MainActivity.java nicht gefunden.')
               text = text.replace(marker, marker + '\n' + import_line)
+          marker = 'public class MainActivity extends BridgeActivity {'
           if 'registerPlugin(DontStopUpdater.class);' not in text:
-              marker = 'public class MainActivity extends BridgeActivity {'
               if marker not in text:
                   raise SystemExit('MainActivity-Klasse nicht gefunden.')
               text = text.replace(marker, marker + '''\n    @Override\n    public void onCreate(android.os.Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        registerPlugin(DontStopUpdater.class);\n    }''')
@@ -92,23 +93,19 @@ jobs:
                   raise SystemExit('AndroidManifest.xml: <manifest>-Element nicht gefunden.')
               insert_at = match.end()
               text = text[:insert_at] + '\n    ' + permission + text[insert_at:]
-
           provider = '''\n        <provider\n            android:name="androidx.core.content.FileProvider"\n            android:authorities="${applicationId}.fileprovider"\n            android:exported="false"\n            android:grantUriPermissions="true">\n            <meta-data\n                android:name="android.support.FILE_PROVIDER_PATHS"\n                android:resource="@xml/file_paths" />\n        </provider>'''
           if 'androidx.core.content.FileProvider' not in text:
-              if '</application>' not in text:
-                  raise SystemExit('AndroidManifest.xml: </application> nicht gefunden.')
               text = text.replace('</application>', provider + '\n    </application>')
           manifest.write_text(text)
 
           gradle = Path('android/app/build.gradle')
           text = gradle.read_text()
           version_code = 1000 + int(os.environ['GITHUB_RUN_NUMBER'])
-          version_name = os.environ['APP_VERSION']
-          text, code_count = re.subn(r'(?m)^\s*versionCode\s+\d+', f'        versionCode {version_code}', text, count=1)
-          if code_count != 1:
+          text, count = re.subn(r'(?m)^\s*versionCode\s+\d+', f'        versionCode {version_code}', text, count=1)
+          if count != 1:
               raise SystemExit('build.gradle: versionCode nicht gefunden.')
-          text, name_count = re.subn(r'(?m)^\s*versionName\s+"[^"]+"', f'        versionName "{version_name}"', text, count=1)
-          if name_count != 1:
+          text, count = re.subn(r'(?m)^\s*versionName\s+"[^"]+"', f'        versionName "{os.environ["APP_VERSION"]}"', text, count=1)
+          if count != 1:
               raise SystemExit('build.gradle: versionName nicht gefunden.')
           gradle.write_text(text)
           PY
@@ -135,13 +132,13 @@ jobs:
 
       - name: Prepare APK
         shell: bash
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk DONT-STOP.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk "DONT-STOP-v${APP_VERSION}-build${GITHUB_RUN_NUMBER}.apk"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: DONT-STOP-Android
-          path: DONT-STOP.apk
+          path: "DONT-STOP-v${{ env.APP_VERSION }}-build${{ github.run_number }}.apk"
           if-no-files-found: error
           overwrite: true
 
@@ -152,12 +149,9 @@ jobs:
         run: |
           set -euo pipefail
           TAG=android-latest
+          ASSET="DONT-STOP-v${APP_VERSION}-build${GITHUB_RUN_NUMBER}.apk"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            ASSET_ID=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[] | select(.name=="DONT-STOP.apk") | .id' | head -n 1)
-            if [ -n "${ASSET_ID:-}" ]; then
-              gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID"
-            fi
-            gh release upload "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY"
+            gh release upload "$TAG" "$ASSET" --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --title "DONT STOP Android" --notes "Aktueller 3D-Android-Installer von DONT STOP." --latest=false
+            gh release create "$TAG" "$ASSET" --repo "$GITHUB_REPOSITORY" --title "DONT STOP Android" --notes "Aktueller 3D-Android-Installer von DONT STOP." --latest=false
           fi
