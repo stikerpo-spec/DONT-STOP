@@ -27,7 +27,7 @@ jobs:
         run: |
           rm -rf www
           mkdir -p www
-          cp index.html game.html game.js save.js sw.js manifest.webmanifest icon.svg www/
+          cp index.html game.html game.js save.js update.js sw.js manifest.webmanifest icon.svg www/
 
       - name: Create Android project
         run: npx cap add android
