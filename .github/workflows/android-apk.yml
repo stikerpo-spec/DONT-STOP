@@ -28,7 +28,7 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('fs');
-          fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '1.0.6', commit: '${process.env.GITHUB_SHA}' };\n`);
+          fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '1.1.0', commit: '${process.env.GITHUB_SHA}' };\n`);
           NODE
 
       - name: Prepare web files
@@ -77,5 +77,5 @@ jobs:
             fi
             gh release upload "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --title "DONT STOP Android" --notes "Aktueller Android-Installer von DONT STOP." --latest=false
+            gh release create "$TAG" DONT-STOP.apk --repo "$GITHUB_REPOSITORY" --title "DONT STOP Android" --notes "Aktueller 3D-Android-Installer von DONT STOP." --latest=false
           fi
