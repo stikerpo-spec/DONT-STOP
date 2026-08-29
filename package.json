@@ -1,0 +1,14 @@
+{
+  "name": "dont-stop",
+  "private": true,
+  "version": "1.0.0",
+  "description": "DON’T STOP installable app",
+  "scripts": {
+    "android:sync": "npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "latest",
+    "@capacitor/cli": "latest",
+    "@capacitor/core": "latest"
+  }
+}
