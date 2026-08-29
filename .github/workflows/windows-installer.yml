@@ -27,7 +27,7 @@ jobs:
       - name: Create build metadata
         shell: pwsh
         run: |
-          Set-Content -Path build-info.js -Value "window.DontStopBuild = { version: '1.2.0', commit: '${env:GITHUB_SHA}' };"
+          Set-Content -Path build-info.js -Value "window.DontStopBuild = { version: '1.3.0', commit: '${env:GITHUB_SHA}' };"
 
       - name: Build Windows installer
         run: npm run desktop:build
@@ -52,5 +52,5 @@ jobs:
             }
             gh release upload $tag 'dist/DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create $tag 'dist/DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY --title 'DONT STOP Windows' --notes 'Aktueller 3D-Windows-Installer von DONT STOP.' --latest=false
+            gh release create $tag 'dist/DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY --title 'DONT STOP Windows' --notes 'Aktueller realistischer 3D-Windows-Installer von DONT STOP.' --latest=false
           }
