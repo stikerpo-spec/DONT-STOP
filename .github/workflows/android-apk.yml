@@ -38,7 +38,7 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const pkg = require('./package.json');
-          fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '${pkg.version}', commit: '${process.env.GITHUB_SHA}' };\n`);
+          fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '${pkg.version}', commit: '${process.env.GITHUB_SHA}', run: ${process.env.GITHUB_RUN_NUMBER} };\n`);
           NODE
 
       - name: Prepare web files
@@ -157,9 +157,11 @@ jobs:
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
           "$APKSIGNER" verify --verbose "$APK"
 
-      - name: Prepare APK
+      - name: Prepare APK files
         shell: bash
-        run: cp android/app/build/outputs/apk/release/app-release.apk "DONT-STOP-v${APP_VERSION}-build${GITHUB_RUN_NUMBER}.apk"
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk "DONT-STOP-v${APP_VERSION}-build${GITHUB_RUN_NUMBER}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "DONT-STOP.apk"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -176,9 +178,10 @@ jobs:
         run: |
           set -euo pipefail
           TAG=android-latest
-          ASSET="DONT-STOP-v${APP_VERSION}-build${GITHUB_RUN_NUMBER}.apk"
+          VERSIONED="DONT-STOP-v${APP_VERSION}-build${GITHUB_RUN_NUMBER}.apk"
+          STABLE="DONT-STOP.apk"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$ASSET" --repo "$GITHUB_REPOSITORY"
+            gh release upload "$TAG" "$VERSIONED" "$STABLE" --repo "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create "$TAG" "$ASSET" --repo "$GITHUB_REPOSITORY" --title "DONT STOP Android" --notes "Aktueller 3D-Android-Installer von DONT STOP." --latest=false
+            gh release create "$TAG" "$VERSIONED" "$STABLE" --repo "$GITHUB_REPOSITORY" --title "DONT STOP Android" --notes "Aktueller 3D-Android-Installer von DONT STOP." --latest=false
           fi
