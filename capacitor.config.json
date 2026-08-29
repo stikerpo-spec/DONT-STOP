@@ -1,7 +1,7 @@
 {
   "appId": "com.stikerpo.dontstop",
   "appName": "DON’T STOP",
-  "webDir": ".",
+  "webDir": "www",
   "server": {
     "androidScheme": "https"
   }
