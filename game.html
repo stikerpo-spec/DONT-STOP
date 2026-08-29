@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#070912">
+  <title>DON’T STOP — Game</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <style>
+    :root{--bg:#050711;--panel:#0d1220;--line:rgba(255,255,255,.12);--text:#f7f9ff;--muted:#9da7c0;--accent:#7a5cff;--good:#29e3ad;--danger:#ff4e78}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% 0%,#171735 0,#090b16 44%,#05060c 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+    body{min-height:100svh;display:grid;place-items:center;padding:12px}
+    .app{width:min(560px,100%);height:min(900px,calc(100svh - 24px));display:flex;flex-direction:column;gap:10px}
+    .top{display:flex;align-items:center;gap:10px}
+    .top a,.icon-btn{width:44px;height:44px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:#ffffff08;color:#fff;text-decoration:none;font-size:20px}
+    .brand{flex:1;text-align:center;font-weight:1000;letter-spacing:.16em;font-size:14px}.save-pill{font-size:11px;color:var(--good);min-width:50px;text-align:right}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:#ffffff06;text-align:center}.stat span{display:block;color:var(--muted);font-size:11px}.stat b{font-size:19px}
+    .arena{position:relative;flex:1;min-height:0;overflow:hidden;border:1px solid var(--line);border-radius:24px;background:radial-gradient(circle at 50% 40%,#1e1b53 0,#0b1020 45%,#070912 100%);box-shadow:0 24px 70px #0008;touch-action:none}
+    .arena:before,.arena:after{content:"";position:absolute;inset:0;pointer-events:none}.arena:before{background:linear-gradient(90deg,transparent 32.9%,#ffffff08 33%,transparent 33.1%,transparent 66.2%,#ffffff08 66.3%,transparent 66.4%)}.arena:after{background:radial-gradient(circle at 50% 50%,transparent 0 42%,#0005 85%)}
+    .lane-labels{position:absolute;top:12px;left:12px;right:12px;display:grid;grid-template-columns:repeat(3,1fr);color:#ffffff28;font-size:10px;text-align:center;z-index:2}
+    .player{position:absolute;width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,#8b6cff,#29e3ad);box-shadow:0 0 34px #6d5cff88;bottom:16%;left:50%;transform:translateX(-50%);transition:left .11s ease-out;z-index:8}
+    .player:after{content:"";position:absolute;inset:13px;border-radius:10px;background:#fff8}
+    .obstacle,.coin{position:absolute;z-index:6}.obstacle{height:54px;border-radius:16px;background:linear-gradient(135deg,#ff4e78,#aa1f57);box-shadow:0 0 26px #ff4e7848}.coin{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#ffe27a,#ffb52e);box-shadow:0 0 22px #ffc84d88}
+    .overlay{position:absolute;inset:0;display:grid;place-items:center;padding:24px;background:#04050ad8;backdrop-filter:blur(10px);z-index:20}.overlay.hidden{display:none}.card{width:min(420px,100%);padding:28px;border:1px solid var(--line);border-radius:26px;background:#0d1220ee;text-align:center;box-shadow:0 25px 80px #0008}.card h1{margin:0 0 8px;font-size:42px;letter-spacing:-.05em}.card p{margin:0 0 20px;color:var(--muted);line-height:1.6}.buttons{display:grid;gap:10px}.btn{width:100%;border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:#ffffff08;color:#fff;font:800 15px inherit;cursor:pointer}.btn.primary{background:linear-gradient(135deg,var(--accent),#a14dff);border-color:transparent}.hint{margin-top:12px;font-size:11px;color:#707b95}
+    .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}.control{height:56px;border:1px solid var(--line);border-radius:18px;background:#ffffff07;color:#fff;font-size:24px;font-weight:1000;touch-action:manipulation}.control:active{transform:scale(.98)}
+    @media(min-width:760px){.controls{display:none}.app{height:min(900px,calc(100svh - 40px))}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="top">
+      <a href="./index.html" aria-label="Zurück">←</a>
+      <div class="brand">DON’T STOP</div>
+      <div id="savePill" class="save-pill">GESPEICHERT</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>SCORE</span><b id="score">0</b></div>
+      <div class="stat"><span>BEST</span><b id="best">0</b></div>
+      <div class="stat"><span>COINS</span><b id="coins">0</b></div>
+    </div>
+    <section id="arena" class="arena" aria-label="Spielarena">
+      <div class="lane-labels"><span>←</span><span>•</span><span>→</span></div>
+      <div id="player" class="player"></div>
+      <div id="overlay" class="overlay">
+        <div class="card">
+          <h1>DON’T STOP</h1>
+          <p id="overlayText">Weiche den Hindernissen aus und halte so lange wie möglich durch.</p>
+          <div class="buttons"><button id="startBtn" class="btn primary">PLAY</button><button id="resumeBtn" class="btn" hidden>RUN FORTSETZEN</button><a class="btn" href="./index.html">HOME</a></div>
+          <div class="hint">PC: ← → oder A / D · Handy: Buttons oder Wischen</div>
+        </div>
+      </div>
+    </section>
+    <div class="controls"><button id="leftBtn" class="control" aria-label="Nach links">◀</button><button id="rightBtn" class="control" aria-label="Nach rechts">▶</button></div>
+  </main>
+  <script src="./save.js"></script>
+  <script src="./game.js"></script>
+</body>
+</html>
