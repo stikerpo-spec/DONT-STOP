@@ -1,15 +1,16 @@
-name: Build DON’T STOP Windows Installer
+name: Build DONT STOP Windows
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -30,32 +31,25 @@ jobs:
       - name: Build Windows installer
         run: npm run desktop:build
 
-      - name: Upload workflow artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: DONT-STOP-Windows
           path: dist/DONT-STOP-Setup.exe
           if-no-files-found: error
 
-      - name: Publish stable Windows download
+      - name: Publish Windows release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "windows-latest"
+          $tag = 'windows-latest'
           if (gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null) {
-            if (gh release upload $tag dist/DONT-STOP-Setup.exe --repo $env:GITHUB_REPOSITORY --clobber) {
-              Write-Host "Windows release updated."
-            } elseif (gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets --jq '.assets[].name' | Select-String -SimpleMatch 'DONT-STOP-Setup.exe') {
-              Write-Host "Installer is already present after upload attempt."
-            } else {
-              Write-Error "Windows release upload failed."
-              exit 1
+            $assets = gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets --jq '.assets[].name'
+            if ($assets -contains 'DONT-STOP-Setup.exe') {
+              gh release delete-asset $tag 'DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY --yes
             }
+            gh release upload $tag 'dist/DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create $tag dist/DONT-STOP-Setup.exe `
-              --repo $env:GITHUB_REPOSITORY `
-              --title "DON’T STOP Windows" `
-              --notes "Aktueller Windows-Installer von DON’T STOP." `
-              --latest=false
+            gh release create $tag 'dist/DONT-STOP-Setup.exe' --repo $env:GITHUB_REPOSITORY --title 'DONT STOP Windows' --notes 'Aktueller Windows-Installer von DONT STOP.' --latest=false
           }
