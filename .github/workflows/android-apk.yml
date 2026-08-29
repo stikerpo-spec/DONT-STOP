@@ -23,6 +23,12 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Prepare web build directory
+        run: |
+          rm -rf www
+          mkdir -p www
+          cp index.html save.js sw.js manifest.webmanifest icon.svg www/
+
       - name: Create Android project
         run: npx cap add android
 
