@@ -33,11 +33,13 @@
       "auth.js",
       "realism.js",
       "update.js",
+      "features.js",
       "progression.js",
       "levels20.js",
       "build-info.js",
       "manifest.webmanifest",
-      "icon.svg"
+      "icon.svg",
+      "assets/**/*"
     ],
     "win": { "target": [{ "target": "nsis", "arch": ["x64"] }] },
     "nsis": {
