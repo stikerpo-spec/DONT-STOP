@@ -49,18 +49,39 @@
   <script>
     (() => {
       if (!document.documentElement.classList.contains('is-native-app')) return;
-      const levelData={1:{name:'NORMAL',cost:0,desc:'Ruhiges Tempo. Perfekt zum Start.'},2:{name:'SCHNELL',cost:10,desc:'Schneller und erste Doppel-Hindernisse.'},3:{name:'HART',cost:30,desc:'Weniger Zeit zum Reagieren.'},4:{name:'EXTREM',cost:60,desc:'Sehr schnell und dichteres Muster.'},5:{name:'CHAOS',cost:100,desc:'Maximale Herausforderung.'}};
+      const levelData={
+        1:{name:'NORMAL',cost:0,desc:'Ruhiges Tempo. Perfekt zum Start.'},
+        2:{name:'SCHNELL',cost:15,desc:'Schneller. Erste Doppel-Hindernisse.'},
+        3:{name:'HART',cost:40,desc:'Deutlich weniger Reaktionszeit.'},
+        4:{name:'EXTREM',cost:90,desc:'Hohes Tempo und dichteres Timing.'},
+        5:{name:'CHAOS',cost:180,desc:'Fiese Kombinationen und hohe Geschwindigkeit.'},
+        6:{name:'TURBO',cost:350,desc:'Das Tempo zieht richtig an.'},
+        7:{name:'NERVEN',cost:650,desc:'Doppel-Hindernisse kommen deutlich häufiger.'},
+        8:{name:'RISKANT',cost:1100,desc:'Neue Ketten aus mehreren Hindernissen.'},
+        9:{name:'BRUTAL',cost:1800,desc:'Extrem wenig Zeit für Fehler.'},
+        10:{name:'MASTER',cost:3000,desc:'Nur mit sauberem Timing.'},
+        11:{name:'APEX',cost:5000,desc:'Sehr hohes Tempo und harte Muster.'},
+        12:{name:'INSANE',cost:8000,desc:'Fast jeder Abschnitt fordert volle Konzentration.'},
+        13:{name:'NIGHTMARE',cost:12500,desc:'Dichte Hindernisse und kaum Leerlauf.'},
+        14:{name:'OVERLOAD',cost:20000,desc:'Ketten wechseln schnell die sichere Spur.'},
+        15:{name:'MERCILESS',cost:32000,desc:'Nur konstante Spieler kommen weit.'},
+        16:{name:'GODLIKE',cost:50000,desc:'Extremes Tempo mit brutalen Sequenzen.'},
+        17:{name:'APOCALYPSE',cost:80000,desc:'Fast kein Raum für einen schlechten Move.'},
+        18:{name:'IMPOSSIBLE',cost:125000,desc:'Für absolute Grind-Profis.'},
+        19:{name:'LEGEND',cost:200000,desc:'Eine der härtesten Herausforderungen.'},
+        20:{name:'ULTIMATE',cost:325000,desc:'Das Endgame. Jeder Run zählt.'}
+      };
       let state=window.DontStopSave.read();
-      const selected=Math.min(5,Math.max(1,Number(state.selectedLevel||1)));
+      const selected=Math.min(20,Math.max(1,Number(state.selectedLevel||1)));
       const unlocked=new Set((state.unlockedLevels||[1]).map(Number));
       const levelsEl=document.getElementById('levels'); const balance=document.getElementById('coinBalance'); const status=document.getElementById('status');
       balance.textContent=Number(state.coins||0).toLocaleString('de-DE');
       for(const [id,info] of Object.entries(levelData)){
         const level=Number(id), card=document.createElement('div'); card.className='level'+(level===selected?' active':''); const canUnlock=unlocked.has(level);
-        card.innerHTML=`<h2>Level ${level}</h2><b>${info.name}</b><div class="desc">${info.desc}</div><div class="price">${info.cost===0?'KOSTENLOS':'🪙 '+info.cost+' Coins'}</div>`;
+        card.innerHTML=`<h2>Level ${level}</h2><b>${info.name}</b><div class="desc">${info.desc}</div><div class="price">${info.cost===0?'KOSTENLOS':'🪙 '+info.cost.toLocaleString('de-DE')+' Coins'}</div>`;
         const btn=document.createElement('button'); btn.className='btn '+(canUnlock?'primary':'');
         if(canUnlock){btn.textContent=level===selected?'AUSGEWÄHLT':'AUSWÄHLEN'; btn.onclick=()=>{if(window.DontStopSave.set({selectedLevel:level})) location.reload();};}
-        else{btn.textContent=`FREISCHALTEN • ${info.cost} 🪙`; btn.disabled=Number(state.coins||0)<info.cost; btn.onclick=()=>{state=window.DontStopSave.read(); if(Number(state.coins||0)<info.cost)return; const levels=new Set((state.unlockedLevels||[1]).map(Number)); levels.add(level); if(window.DontStopSave.set({coins:Number(state.coins||0)-info.cost,unlockedLevels:[...levels],selectedLevel:level})) location.reload();};}
+        else{btn.textContent=`FREISCHALTEN • ${info.cost.toLocaleString('de-DE')} 🪙`; btn.disabled=Number(state.coins||0)<info.cost; btn.onclick=()=>{state=window.DontStopSave.read(); if(Number(state.coins||0)<info.cost)return; const levels=new Set((state.unlockedLevels||[1]).map(Number)); levels.add(level); if(window.DontStopSave.set({coins:Number(state.coins||0)-info.cost,unlockedLevels:[...levels],selectedLevel:level})) location.reload();};}
         card.appendChild(btn); levelsEl.appendChild(card);
       }
       document.getElementById('saveState').textContent='bereit ✓';
