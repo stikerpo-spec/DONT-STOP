@@ -3,28 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#070912">
-  <title>DON’T STOP — Game</title>
+  <meta name="theme-color" content="#050711">
+  <title>DON’T STOP — 3D Game</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <style>
-    :root{--bg:#050711;--panel:#0d1220;--line:rgba(255,255,255,.12);--text:#f7f9ff;--muted:#9da7c0;--accent:#7a5cff;--good:#29e3ad;--danger:#ff4e78}
-    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% 0%,#171735 0,#090b16 44%,#05060c 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
-    body{min-height:100svh;display:grid;place-items:center;padding:12px}.app{width:min(560px,100%);height:min(900px,calc(100svh - 24px));display:flex;flex-direction:column;gap:10px}.top{display:flex;align-items:center;gap:10px}.top a,.icon-btn{width:44px;height:44px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:#ffffff08;color:#fff;text-decoration:none;font-size:20px}.brand{flex:1;text-align:center;font-weight:1000;letter-spacing:.16em;font-size:14px}.save-pill{font-size:11px;color:var(--good);min-width:68px;text-align:right}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.stat{padding:9px 7px;border:1px solid var(--line);border-radius:16px;background:#ffffff06;text-align:center}.stat span{display:block;color:var(--muted);font-size:10px}.stat b{font-size:15px}.arena{position:relative;flex:1;min-height:0;overflow:hidden;border:1px solid var(--line);border-radius:24px;background:radial-gradient(circle at 50% 40%,#1e1b53 0,#0b1020 45%,#070912 100%);box-shadow:0 24px 70px #0008;touch-action:none}.arena:before,.arena:after{content:"";position:absolute;inset:0;pointer-events:none}.arena:before{background:linear-gradient(90deg,transparent 32.9%,#ffffff08 33%,transparent 33.1%,transparent 66.2%,#ffffff08 66.3%,transparent 66.4%)}.arena:after{background:radial-gradient(circle at 50% 50%,transparent 0 42%,#0005 85%)}.lane-labels{position:absolute;top:12px;left:12px;right:12px;display:grid;grid-template-columns:repeat(3,1fr);color:#ffffff28;font-size:10px;text-align:center;z-index:2}.player{position:absolute;width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,#8b6cff,#29e3ad);box-shadow:0 0 34px #6d5cff88;bottom:16%;left:50%;transform:translateX(-50%);transition:left .11s ease-out;z-index:8}.player:after{content:"";position:absolute;inset:13px;border-radius:10px;background:#fff8}.obstacle{position:absolute;z-index:6;width:31%;max-width:150px;height:54px;border-radius:16px;background:linear-gradient(135deg,#ff4e78,#aa1f57);box-shadow:0 0 26px #ff4e7848}.overlay{position:absolute;inset:0;display:grid;place-items:center;padding:24px;background:#04050ad8;backdrop-filter:blur(10px);z-index:20}.overlay.hidden{display:none}.card{width:min(420px,100%);padding:28px;border:1px solid var(--line);border-radius:26px;background:#0d1220ee;text-align:center;box-shadow:0 25px 80px #0008}.card h1{margin:0 0 8px;font-size:42px;letter-spacing:-.05em}.card p{margin:0 0 20px;color:var(--muted);line-height:1.6}.buttons{display:grid;gap:10px}.btn{width:100%;border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:#ffffff08;color:#fff;font:800 15px inherit;cursor:pointer;text-decoration:none}.btn.primary{background:linear-gradient(135deg,var(--accent),#a14dff);border-color:transparent}.hint{margin-top:12px;font-size:11px;color:#707b95}.controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}.control{height:56px;border:1px solid var(--line);border-radius:18px;background:#ffffff07;color:#fff;font-size:24px;font-weight:1000;touch-action:manipulation}.control:active{transform:scale(.98)}
-    @media(min-width:760px){.controls{display:none}.app{height:min(900px,calc(100svh - 40px))}}
+    :root{--bg:#050711;--line:rgba(255,255,255,.12);--text:#f7f9ff;--muted:#9da7c0;--accent:#7a5cff;--good:#29e3ad;--gold:#ffe27a;--danger:#ff4e78}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050711;color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{position:fixed;inset:0}.game{position:fixed;inset:0}.scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+    .hud{position:absolute;top:max(12px,env(safe-area-inset-top));left:0;right:0;padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;pointer-events:none;z-index:5}
+    .top-btn,.stats{pointer-events:auto;border:1px solid var(--line);background:rgba(7,10,20,.64);backdrop-filter:blur(14px);box-shadow:0 12px 30px rgba(0,0,0,.25)}
+    .top-btn{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:#fff;text-decoration:none;font-size:20px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:7px;border-radius:16px}
+    .stat{text-align:center;min-width:0}.stat span{display:block;color:var(--muted);font-size:9px}.stat b{font-size:14px}.save-pill{font-size:10px;color:var(--good);white-space:nowrap}
+    .overlay{position:absolute;inset:0;display:grid;place-items:center;padding:20px;background:rgba(3,5,12,.48);backdrop-filter:blur(3px);z-index:10}.overlay.hidden{display:none}
+    .card{width:min(430px,100%);padding:28px;border:1px solid var(--line);border-radius:28px;background:rgba(9,13,26,.9);box-shadow:0 30px 100px rgba(0,0,0,.55);text-align:center}.card h1{margin:0 0 8px;font-size:clamp(38px,8vw,54px);letter-spacing:-.06em}.card p{margin:0 0 20px;color:var(--muted);line-height:1.6}.eyebrow{display:inline-flex;margin-bottom:12px;padding:6px 10px;border-radius:999px;background:rgba(122,92,255,.12);border:1px solid rgba(122,92,255,.28);font-size:10px;font-weight:900;letter-spacing:.12em}
+    .buttons{display:grid;gap:10px}.btn{width:100%;min-height:50px;border:1px solid var(--line);border-radius:16px;background:#ffffff09;color:#fff;font:800 15px inherit;cursor:pointer;text-decoration:none}.btn.primary{background:linear-gradient(135deg,var(--accent),#a14dff);border-color:transparent}
+    .hint{margin-top:12px;color:#737d98;font-size:11px;line-height:1.5}.controls{position:absolute;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;z-index:6}.control{height:58px;border:1px solid var(--line);border-radius:18px;background:rgba(7,10,20,.62);backdrop-filter:blur(14px);color:#fff;font-size:23px;font-weight:1000;touch-action:manipulation;box-shadow:0 12px 30px rgba(0,0,0,.24)}
+    @media(min-width:760px){.controls{display:none}.hud{padding-left:18px;padding-right:18px}.stats{width:min(620px,70vw);justify-self:center}.top-btn{width:48px;height:48px}}
   </style>
 </head>
 <body>
-  <main class="app">
-    <div class="top"><a href="./index.html" aria-label="Zurück">←</a><div class="brand">DON’T STOP</div><div id="savePill" class="save-pill">GESPEICHERT</div></div>
-    <div class="stats">
-      <div class="stat"><span>SCORE</span><b id="score">0</b></div><div class="stat"><span>BEST</span><b id="best">0</b></div><div class="stat"><span>COINS</span><b id="coins">0</b></div><div class="stat"><span>LEVEL</span><b id="level">1 • NORMAL</b></div>
+  <main class="game">
+    <canvas id="scene" class="scene" aria-label="3D-Spielarena"></canvas>
+    <div class="hud">
+      <a class="top-btn" href="./index.html" aria-label="Hauptmenü">←</a>
+      <div class="stats">
+        <div class="stat"><span>SCORE</span><b id="score">0</b></div>
+        <div class="stat"><span>BEST</span><b id="best">0</b></div>
+        <div class="stat"><span>COINS</span><b id="coins">0</b></div>
+        <div class="stat"><span>LEVEL</span><b id="level">1 • NORMAL</b></div>
+      </div>
+      <div id="savePill" class="save-pill">GESPEICHERT</div>
     </div>
-    <section id="arena" class="arena" aria-label="Spielarena">
-      <div class="lane-labels"><span>←</span><span>•</span><span>→</span></div><div id="player" class="player"></div>
-      <div id="overlay" class="overlay"><div class="card"><h1>DON’T STOP</h1><p id="overlayText">Weiche den Hindernissen aus. Für jedes Hindernis, das du erfolgreich hinter dir lässt, bekommst du <strong>+1 Coin</strong>.</p><div class="buttons"><button id="startBtn" class="btn primary">PLAY</button><button id="resumeBtn" class="btn" hidden>RUN FORTSETZEN</button><a class="btn" href="./index.html">HAUPTMENÜ</a></div><div class="hint">PC: ← → oder A / D · Handy: Buttons oder Wischen</div></div></div>
-    </section>
-    <div class="controls"><button id="leftBtn" class="control" aria-label="Nach links">◀</button><button id="rightBtn" class="control" aria-label="Nach rechts">▶</button></div>
+    <div id="overlay" class="overlay">
+      <section class="card">
+        <div class="eyebrow">3D ENDLESS RUNNER</div>
+        <h1>DON’T STOP</h1>
+        <p id="overlayText">Laufe durch die 3D-Strecke, weiche Hindernissen aus und sammle Coins. Für jedes erfolgreich vermiedene Hindernis bekommst du +1 Coin.</p>
+        <div class="buttons">
+          <button id="startBtn" class="btn primary">PLAY</button>
+          <button id="resumeBtn" class="btn" hidden>RUN FORTSETZEN</button>
+          <a class="btn" href="./index.html">HAUPTMENÜ</a>
+        </div>
+        <div class="hint">PC: ← → / A D · Springen: ↑ / W / Leertaste · Handy: Buttons oder Wischen</div>
+      </section>
+    </div>
+    <div class="controls">
+      <button id="leftBtn" class="control" aria-label="Nach links">◀</button>
+      <button id="jumpBtn" class="control" aria-label="Springen">⬆</button>
+      <button id="rightBtn" class="control" aria-label="Nach rechts">▶</button>
+    </div>
   </main>
   <script src="./save.js"></script>
   <script src="./build-info.js"></script>
