@@ -9,6 +9,16 @@
   };
   const isNative = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
+  function loadProgressionScripts() {
+    if (!isNative) return;
+    for (const src of ['./progression.js', './levels20.js']) {
+      const script = document.createElement('script');
+      script.src = `${src}?v=${Date.now()}`;
+      script.async = false;
+      document.head.appendChild(script);
+    }
+  }
+
   if (!isNative) return;
 
   function createOverlay() {
@@ -48,11 +58,7 @@
 
   function localBuild() {
     const b = window.DontStopBuild || {};
-    return {
-      version: String(b.version || 'unknown'),
-      commit: String(b.commit || '').trim(),
-      run: Number(b.run || 0)
-    };
+    return { version: String(b.version || 'unknown'), commit: String(b.commit || '').trim(), run: Number(b.run || 0) };
   }
 
   function detectPlatform() {
@@ -61,134 +67,57 @@
     return 'unknown';
   }
 
-  function nativeUpdater() {
-    return window.Capacitor?.Plugins?.DontStopUpdater || null;
-  }
-
-  function electronUpdater() {
-    return window.DontStopElectronUpdater || null;
-  }
+  function nativeUpdater() { return window.Capacitor?.Plugins?.DontStopUpdater || null; }
+  function electronUpdater() { return window.DontStopElectronUpdater || null; }
 
   async function getLatestRelease(platform) {
     const tag = platform === 'android' ? 'android-latest' : 'windows-latest';
-    const response = await fetch(`${RELEASE_API}${tag}?t=${Date.now()}`, {
-      cache: 'no-store',
-      headers: { Accept: 'application/vnd.github+json' }
-    });
+    const response = await fetch(`${RELEASE_API}${tag}?t=${Date.now()}`, { cache:'no-store', headers:{Accept:'application/vnd.github+json'} });
     if (!response.ok) throw new Error(`GitHub Release antwortete mit HTTP ${response.status}.`);
     const release = await response.json();
     const assets = Array.isArray(release.assets) ? release.assets : [];
-    const pattern = platform === 'android'
-      ? /^DONT-STOP-v.+-build(\d+)\.apk$/i
-      : /^DONT-STOP-Setup-v.+-build(\d+)\.exe$/i;
-    const versioned = assets
-      .map(asset => ({ asset, match: String(asset?.name || '').match(pattern) }))
-      .filter(item => item.match && item.asset?.browser_download_url)
-      .map(item => ({ ...item.asset, build: Number(item.match[1]) }));
-    if (!versioned.length) {
-      throw new Error('Noch kein aktueller Installer wurde im Release veröffentlicht.');
-    }
-    versioned.sort((a, b) => b.build - a.build);
+    const pattern = platform === 'android' ? /^DONT-STOP-v.+-build(\d+)\.apk$/i : /^DONT-STOP-Setup-v.+-build(\d+)\.exe$/i;
+    const versioned = assets.map(asset => ({asset, match:String(asset?.name||'').match(pattern)})).filter(x => x.match && x.asset?.browser_download_url).map(x => ({...x.asset, build:Number(x.match[1])}));
+    if (!versioned.length) throw new Error('Noch kein aktueller Installer wurde im Release veröffentlicht.');
+    versioned.sort((a,b)=>b.build-a.build);
     const latest = versioned[0];
-    return {
-      build: latest.build,
-      version: String(latest.name).match(/v(.+)-build/i)?.[1] || 'unbekannt',
-      stableUrl: `${DOWNLOAD_URLS[platform]}?t=${Date.now()}`,
-      assetUrl: latest.browser_download_url
-    };
+    return { build:latest.build, version:String(latest.name).match(/v(.+)-build/i)?.[1]||'unbekannt', stableUrl:`${DOWNLOAD_URLS[platform]}?t=${Date.now()}`, assetUrl:latest.browser_download_url };
   }
 
   async function startNativeInstall(platform, url) {
-    if (platform === 'android') {
-      const plugin = nativeUpdater();
-      if (plugin?.downloadAndInstall) {
-        return plugin.downloadAndInstall({ url, fileName: 'DONT-STOP-update.apk' });
-      }
-    }
-
-    if (platform === 'windows') {
-      const updater = electronUpdater();
-      if (updater?.downloadAndInstall) {
-        return updater.downloadAndInstall(url);
-      }
-    }
-
+    if (platform === 'android') { const plugin=nativeUpdater(); if(plugin?.downloadAndInstall) return plugin.downloadAndInstall({url,fileName:'DONT-STOP-update.apk'}); }
+    if (platform === 'windows') { const updater=electronUpdater(); if(updater?.downloadAndInstall) return updater.downloadAndInstall(url); }
     throw new Error('Diese installierte App enthält noch keinen nativen Update-Installer.');
   }
 
   function showInstalling(platform) {
-    const o = createOverlay();
-    const c = o.querySelector('.dsu-card');
-    c.querySelector('h1').textContent = 'Update wird installiert …';
-    c.querySelector('p').textContent = platform === 'android'
-      ? 'Die neue APK wird geladen. Danach öffnet sich der Android-Installer.'
-      : 'Der neue Windows-Installer wird geladen und gestartet.';
-    c.querySelector('.dsu-version').textContent = 'UPDATE LÄUFT';
-    c.querySelector('.dsu-buttons').innerHTML = `<div class="progress"><div class="bar" id="dontStopUpdateBar"></div></div>`;
-    let progress = 5;
-    const timer = setInterval(() => {
-      progress = Math.min(progress + Math.random() * 8, 92);
-      const bar = document.getElementById('dontStopUpdateBar');
-      if (bar) bar.style.width = `${progress}%`;
-    }, 350);
-    return () => clearInterval(timer);
+    const o=createOverlay(), c=o.querySelector('.dsu-card');
+    c.querySelector('h1').textContent='Update wird installiert …';
+    c.querySelector('p').textContent=platform==='android'?'Die neue APK wird geladen. Danach öffnet sich der Android-Installer.':'Der neue Windows-Installer wird geladen und gestartet.';
+    c.querySelector('.dsu-version').textContent='UPDATE LÄUFT';
+    c.querySelector('.dsu-buttons').innerHTML='<div class="progress"><div class="bar" id="dontStopUpdateBar"></div></div>';
+    let progress=5; const timer=setInterval(()=>{progress=Math.min(progress+Math.random()*8,92);const bar=document.getElementById('dontStopUpdateBar');if(bar)bar.style.width=`${progress}%`;},350); return ()=>clearInterval(timer);
   }
 
   async function check() {
-    const local = localBuild();
-    const platform = detectPlatform();
-    if (platform === 'unknown') {
-      removeOverlay();
-      return;
-    }
-
+    const local=localBuild(), platform=detectPlatform();
+    if(platform==='unknown'){removeOverlay();return;}
     try {
-      const latest = await getLatestRelease(platform);
-      const updateAvailable = !local.run || latest.build > local.run || (local.version !== latest.version && local.version !== 'unknown');
-      if (!updateAvailable) {
-        removeOverlay();
-        return;
-      }
-
-      show({
-        title: 'Update verfügbar',
-        text: `Eine neue DON’T STOP-Version ist verfügbar. Sie wird direkt aus der App installiert.`,
-        version: `${local.version} → ${latest.version} • Build ${latest.build}`,
-        buttons: `<button class="primary" id="dontStopUpdateStart">UPDATE HERUNTERLADEN & INSTALLIEREN</button>`
-      });
-
-      document.getElementById('dontStopUpdateStart').onclick = async () => {
-        let stopProgress = () => {};
-        try {
-          stopProgress = showInstalling(platform);
-          await startNativeInstall(platform, latest.stableUrl);
-        } catch (error) {
-          stopProgress();
-          show({
-            title: 'Update fehlgeschlagen',
-            text: error?.message || 'Die Update-Datei konnte nicht geladen oder installiert werden.',
-            version: 'UPDATE-FEHLER',
-            buttons: `<button id="dontStopUpdateRetry" class="primary">ERNEUT VERSUCHEN</button><button id="dontStopUpdateClose" class="danger">SCHLIESSEN</button>`,
-            muted: 'Prüfe Internetverbindung und ob die neueste App-Version installiert ist.'
-          });
-          document.getElementById('dontStopUpdateRetry').onclick = () => check();
-          document.getElementById('dontStopUpdateClose').onclick = removeOverlay;
-        }
+      const latest=await getLatestRelease(platform);
+      const updateAvailable=!local.run || latest.build>local.run || (local.version!==latest.version && local.version!=='unknown');
+      if(!updateAvailable){removeOverlay();return;}
+      show({title:'Update verfügbar',text:'Eine neue DON’T STOP-Version ist verfügbar. Sie wird direkt aus der App installiert.',version:`${local.version} → ${latest.version} • Build ${latest.build}`,buttons:'<button class="primary" id="dontStopUpdateStart">UPDATE HERUNTERLADEN & INSTALLIEREN</button>'});
+      document.getElementById('dontStopUpdateStart').onclick=async()=>{
+        let stopProgress=()=>{};
+        try { stopProgress=showInstalling(platform); await startNativeInstall(platform, latest.stableUrl); }
+        catch(error){ stopProgress(); show({title:'Update fehlgeschlagen',text:error?.message||'Die Update-Datei konnte nicht geladen oder installiert werden.',version:'UPDATE-FEHLER',buttons:'<button id="dontStopUpdateRetry" class="primary">ERNEUT VERSUCHEN</button><button id="dontStopUpdateClose" class="danger">SCHLIESSEN</button>',muted:'Prüfe Internetverbindung und ob die neueste App-Version installiert ist.'}); document.getElementById('dontStopUpdateRetry').onclick=()=>check(); document.getElementById('dontStopUpdateClose').onclick=removeOverlay; }
       };
-    } catch (error) {
-      show({
-        title: 'Update-Prüfung fehlgeschlagen',
-        text: error?.message || 'Der Update-Server konnte nicht erreicht werden.',
-        version: 'UPDATE-PRÜFUNG',
-        buttons: `<button id="dontStopUpdateRetry" class="primary">ERNEUT VERSUCHEN</button><button id="dontStopUpdateClose" class="danger">SCHLIESSEN</button>`
-      });
-      document.getElementById('dontStopUpdateRetry').onclick = () => check();
-      document.getElementById('dontStopUpdateClose').onclick = removeOverlay;
+    } catch(error) {
+      show({title:'Update-Prüfung fehlgeschlagen',text:error?.message||'Der Update-Server konnte nicht erreicht werden.',version:'UPDATE-PRÜFUNG',buttons:'<button id="dontStopUpdateRetry" class="primary">ERNEUT VERSUCHEN</button><button id="dontStopUpdateClose" class="danger">SCHLIESSEN</button>'});
+      document.getElementById('dontStopUpdateRetry').onclick=()=>check(); document.getElementById('dontStopUpdateClose').onclick=removeOverlay;
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    createOverlay();
-    check();
-  }, { once: true });
+  document.addEventListener('DOMContentLoaded', () => { createOverlay(); loadProgressionScripts(); check(); }, { once:true });
+  if (document.readyState !== 'loading') loadProgressionScripts();
 })();
