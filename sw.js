@@ -1,12 +1,13 @@
-const CACHE = 'dont-stop-v5';
+const CACHE = 'dont-stop-v6';
 const ASSETS = [
-  './','./index.html','./game.html','./game.js','./save.js','./update.js','./build-info.js','./manifest.webmanifest','./icon.svg'
+  './','./index.html','./game.html','./game.js','./save.js','./update.js','./features.js','./progression.js','./levels20.js','./build-info.js','./manifest.webmanifest','./icon.svg',
+  './assets/world-city.svg','./assets/world-night.svg','./assets/world-desert.svg','./assets/world-snow.svg','./assets/world-cyber.svg','./assets/world-volcano.svg'
 ];
 
 const isSameOrigin = request => new URL(request.url).origin === self.location.origin;
 const shouldNetworkFirst = request => {
   const path = new URL(request.url).pathname;
-  return request.mode === 'navigate' || /\/(index|game|save|update|build-info)\.js?$/.test(path) || /\.html?$/.test(path);
+  return request.mode === 'navigate' || /\/(index|game|save|update|features|progression|levels20|build-info)\.js?$/.test(path) || /\.html?$/.test(path);
 };
 
 self.addEventListener('install', event => {
