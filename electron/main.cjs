@@ -4,7 +4,6 @@ const fs = require('node:fs');
 const os = require('node:os');
 const { spawn } = require('node:child_process');
 const https = require('node:https');
-const discordPresence = require('./discord-presence.cjs');
 
 const ALLOWED_UPDATE_HOSTS = new Set(['github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com']);
 
@@ -39,11 +38,6 @@ ipcMain.handle('dont-stop:download-and-install', async (_event, updateUrl) => {
   return { started: true };
 });
 
-ipcMain.handle('dont-stop:discord-update', async (_event, payload = {}) => {
-  try { return { ok: await discordPresence.update(payload) }; } catch { return { ok: false }; }
-});
-ipcMain.handle('dont-stop:discord-clear', async () => { try { discordPresence.clear(); return { ok: true }; } catch { return { ok: false }; } });
-
 const createWindow = () => {
   const win = new BrowserWindow({ width: 560, height: 900, minWidth: 420, minHeight: 650, backgroundColor: '#050711', title: "DON'T STOP", autoHideMenuBar: true, webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, 'preload.cjs') } });
   Menu.setApplicationMenu(null); win.loadFile(path.join(__dirname, '..', 'index.html'));
@@ -53,5 +47,4 @@ app.whenReady().then(() => {
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
-app.on('before-quit', () => { try { discordPresence.clear(); discordPresence.disconnect(); } catch {} });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
