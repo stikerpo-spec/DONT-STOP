@@ -40,7 +40,7 @@ jobs:
         run: |
           rm -rf www
           mkdir -p www/assets
-          cp index.html progress.html game.html game.js game-core.js save.js auth.js update.js progression.js levels20.js features.js realistic-scene.js realism.js build-info.js manifest.webmanifest icon.svg www/
+          cp index.html progress.html game.html game-stable.js game.js save.js auth.js update.js progression.js levels20.js features.js realistic-scene.js realism.js build-info.js manifest.webmanifest icon.svg www/
           cp assets/*.svg www/assets/
       - name: Create Android project
         run: npx cap add android
