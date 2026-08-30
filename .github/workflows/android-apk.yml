@@ -15,15 +15,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-
       - name: Read app version
         id: version
         shell: bash
@@ -31,7 +28,6 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
-
       - name: Create build metadata
         shell: bash
         run: |
@@ -40,19 +36,16 @@ jobs:
           const pkg = require('./package.json');
           fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '${pkg.version}', commit: '${process.env.GITHUB_SHA}', run: ${process.env.GITHUB_RUN_NUMBER} };\n`);
           NODE
-
       - name: Prepare web files
         shell: bash
         run: |
           rm -rf www
           mkdir -p www/assets
-          cp index.html game.html game.js save.js auth.js realism.js update.js progression.js levels20.js features.js build-info.js manifest.webmanifest icon.svg www/
+          cp index.html progress.html game.html game.js save.js auth.js realism.js update.js progression.js levels20.js features.js build-info.js manifest.webmanifest icon.svg www/
           cp assets/*.svg www/assets/
-
       - name: Create Android project
         shell: bash
         run: npx cap add android
-
       - name: Install native updater and signing configuration
         shell: bash
         env:
@@ -67,12 +60,10 @@ jobs:
           cp native/android/file_paths.xml android/app/src/main/res/xml/file_paths.xml
           base64 -d native/android/dontstop-release.jks.b64 > "$SIGNING_STORE_FILE"
           test -s "$SIGNING_STORE_FILE"
-
           python3 - <<'PY'
           from pathlib import Path
           import os
           import re
-
           main = next(Path('android/app/src/main/java').rglob('MainActivity.java'))
           text = main.read_text()
           import_line = 'import com.stikerpo.dontstop.DontStopUpdater;'
@@ -85,12 +76,11 @@ jobs:
               if marker not in text: raise SystemExit('MainActivity-Klasse nicht gefunden.')
               text = text.replace(marker, marker + '''\n    @Override\n    public void onCreate(android.os.Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        registerPlugin(DontStopUpdater.class);\n    }''')
           main.write_text(text)
-
           manifest = Path('android/app/src/main/AndroidManifest.xml')
           text = manifest.read_text()
           permission = '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
           if permission not in text:
-              match = re.search(r'<manifest\b[^>]*>', text)
+              match = re.search(r'<manifest\\b[^>]*>', text)
               if not match: raise SystemExit('AndroidManifest.xml: <manifest>-Element nicht gefunden.')
               text = text[:match.end()] + '\n    ' + permission + text[match.end():]
           provider = '''\n        <provider\n            android:name="androidx.core.content.FileProvider"\n            android:authorities="${applicationId}.fileprovider"\n            android:exported="false"\n            android:grantUriPermissions="true">\n            <meta-data\n                android:name="android.support.FILE_PROVIDER_PATHS"\n                android:resource="@xml/file_paths" />\n        </provider>'''
@@ -98,7 +88,6 @@ jobs:
               if '</application>' not in text: raise SystemExit('AndroidManifest.xml: </application> nicht gefunden.')
               text = text.replace('</application>', provider + '\n    </application>')
           manifest.write_text(text)
-
           gradle = Path('android/app/build.gradle')
           text = gradle.read_text()
           version_code = 1000 + int(os.environ['GITHUB_RUN_NUMBER'])
@@ -115,22 +104,18 @@ jobs:
           if count != 1: raise SystemExit('build.gradle: release signingConfig konnte nicht gesetzt werden.')
           gradle.write_text(text)
           PY
-
       - name: Sync Android project
         shell: bash
         run: npx cap sync android
-
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
-
       - name: Build signed APK
         working-directory: android
         shell: bash
@@ -140,7 +125,6 @@ jobs:
           SIGNING_KEY_ALIAS: dontstop
           SIGNING_KEY_PASSWORD: dontstop-dev-2026
         run: ./gradlew assembleRelease --no-daemon --stacktrace
-
       - name: Verify APK signing
         shell: bash
         run: |
@@ -148,13 +132,11 @@ jobs:
           test -s "$APK"
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
           "$APKSIGNER" verify --verbose "$APK"
-
       - name: Prepare APK files
         shell: bash
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk "DONT-STOP-v${APP_VERSION}-build${GITHUB_RUN_NUMBER}.apk"
           cp android/app/build/outputs/apk/release/app-release.apk "DONT-STOP.apk"
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -162,7 +144,6 @@ jobs:
           path: "DONT-STOP-v${{ env.APP_VERSION }}-build${{ github.run_number }}.apk"
           if-no-files-found: error
           overwrite: true
-
       - name: Publish Android release
         env:
           GH_TOKEN: ${{ github.token }}
