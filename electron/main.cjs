@@ -6,6 +6,45 @@ const { spawn } = require('node:child_process');
 const https = require('node:https');
 
 const ALLOWED_UPDATE_HOSTS = new Set(['github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com']);
+let discordProcess = null;
+
+function discordHelperPath() {
+  const candidates = [
+    path.join(process.resourcesPath, 'discord', 'dont-stop-discord-presence.exe'),
+    path.join(__dirname, 'bin', 'dont-stop-discord-presence.exe'),
+    path.join(__dirname, '..', 'native', 'windows', 'build', 'Release', 'dont-stop-discord-presence.exe')
+  ];
+  return candidates.find(p => fs.existsSync(p)) || null;
+}
+
+function escapeField(value) {
+  return String(value ?? '').replace(/\\/g, '\\\\').replace(/\t/g, ' ').replace(/\r?\n/g, ' ');
+}
+
+function ensureDiscordProcess() {
+  if (process.platform !== 'win32' || discordProcess) return !!discordProcess;
+  const helper = discordHelperPath();
+  if (!helper) return false;
+  try {
+    discordProcess = spawn(helper, [], { windowsHide: true, stdio: ['pipe', 'ignore', 'ignore'] });
+    discordProcess.on('close', () => { discordProcess = null; });
+    discordProcess.on('error', () => { try { discordProcess?.kill(); } catch {} discordProcess = null; });
+    return true;
+  } catch {
+    discordProcess = null;
+    return false;
+  }
+}
+
+function sendDiscord(line) {
+  if (!ensureDiscordProcess() || !discordProcess?.stdin?.writable) return false;
+  try {
+    discordProcess.stdin.write(`${line}\n`);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function downloadFile(url, destination, redirects = 0) {
   return new Promise((resolve, reject) => {
@@ -38,6 +77,14 @@ ipcMain.handle('dont-stop:download-and-install', async (_event, updateUrl) => {
   return { started: true };
 });
 
+ipcMain.handle('dont-stop:discord-update', async (_event, payload = {}) => {
+  const details = escapeField(payload.details || "DON'T STOP");
+  const state = escapeField(payload.state || 'Spielt gerade');
+  return { ok: sendDiscord(`UPDATE\t${details}\t${state}`) };
+});
+
+ipcMain.handle('dont-stop:discord-clear', async () => ({ ok: sendDiscord('CLEAR') }));
+
 const createWindow = () => {
   const win = new BrowserWindow({ width: 560, height: 900, minWidth: 420, minHeight: 650, backgroundColor: '#050711', title: "DON'T STOP", autoHideMenuBar: true, webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, 'preload.cjs') } });
   Menu.setApplicationMenu(null); win.loadFile(path.join(__dirname, '..', 'index.html'));
@@ -46,5 +93,11 @@ const createWindow = () => {
 app.whenReady().then(() => {
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+});
+app.on('before-quit', () => {
+  try { discordProcess?.stdin?.write('CLEAR\n'); } catch {}
+  try { discordProcess?.stdin?.write('QUIT\n'); } catch {}
+  try { discordProcess?.kill(); } catch {}
+  discordProcess = null;
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
