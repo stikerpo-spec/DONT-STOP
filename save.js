@@ -123,12 +123,18 @@
   window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveImmediately(); });
   window.addEventListener('beforeunload', saveImmediately);
 
+  // The 3D game page must stay independent from the feature UI.
+  // Loading the feature layer here used to inject extra UI after the game
+  // started and could interfere with the game's own interaction layer.
   function loadFeatures() {
+    if (location.pathname.endsWith('/game.html')) return;
     if (window.__dontStopFeaturesLoaded || !document.body) return;
     window.__dontStopFeaturesLoaded = true;
     const script = document.createElement('script');
-    script.src = './features.js?v=ultimate';
+    script.src = './features.js?v=ultimate2';
     script.async = false;
+    script.onload = () => window.dispatchEvent(new Event('dontstop:features-ready'));
+    script.onerror = () => { window.__dontStopFeaturesLoaded = false; };
     document.body.appendChild(script);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadFeatures, { once: true });
