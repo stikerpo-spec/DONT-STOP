@@ -1,1 +1,1 @@
-window.DontStopBuild = { version: '1.3.8', commit: 'SOURCE_BUILD', run: 0 };
+window.DontStopBuild = { version: '1.3.19', commit: 'SOURCE_BUILD', run: 0 };
