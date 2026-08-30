@@ -32,6 +32,7 @@
       "save.js",
       "auth.js",
       "realism.js",
+      "interaction-fix.js",
       "update.js",
       "features.js",
       "progression.js",
