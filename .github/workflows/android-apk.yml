@@ -46,7 +46,7 @@ jobs:
         run: |
           rm -rf www
           mkdir -p www/assets
-          cp index.html game.html game.js save.js auth.js realism.js sw.js update.js progression.js levels20.js features.js build-info.js manifest.webmanifest icon.svg www/
+          cp index.html game.html game.js save.js auth.js realism.js update.js progression.js levels20.js features.js build-info.js manifest.webmanifest icon.svg www/
           cp assets/*.svg www/assets/
 
       - name: Create Android project
