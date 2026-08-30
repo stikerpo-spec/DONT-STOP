@@ -51,7 +51,8 @@ ipcMain.handle('dont-stop:discord-clear', async () => {
 
 const createWindow = () => {
   const win = new BrowserWindow({ width: 560, height: 900, minWidth: 420, minHeight: 650, backgroundColor: '#050711', title: "DON'T STOP", autoHideMenuBar: true, webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, 'preload.cjs') } });
-  Menu.setApplicationMenu(null); win.loadFile(path.join(__dirname, '..', 'index.html'));
+  Menu.setApplicationMenu(null);
+  win.loadFile(path.join(__dirname, '..', 'game.html'));
 };
 
 app.whenReady().then(() => {
