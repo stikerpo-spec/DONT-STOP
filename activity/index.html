@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#050711">
+  <title>DON'T STOP • Discord Activity</title>
+  <style>
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050711;color:#fff;font-family:Inter,system-ui,sans-serif}
+    .loading{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 50% 20%,#17234a 0,#080b16 55%,#050711 100%)}
+    .card{text-align:center;width:min(460px,calc(100% - 40px));padding:28px;border:1px solid #ffffff18;border-radius:24px;background:#0c1120e8;box-shadow:0 30px 80px #0008}
+    h1{margin:0 0 10px;font-size:42px;letter-spacing:-.06em}.muted{color:#a5aec5;line-height:1.6}.error{color:#ff9a9a}
+  </style>
+</head>
+<body>
+  <div class="loading"><section class="card"><h1>DON’T STOP</h1><div id="status" class="muted">Discord Activity wird gestartet…</div></section></div>
+  <script type="module">
+    const status=document.getElementById('status');
+    const fail=(message)=>{status.textContent=message;status.className='muted error';};
+    try{
+      // Discord's first-party Embedded App SDK is imported through the Activity's
+      // /sdk URL mapping. This keeps the Discord SDK out of the normal website/app.
+      const {DiscordSDK}=await import('/sdk/@discord/embedded-app-sdk@2.5.0');
+      const discordSdk=new DiscordSDK('1543556589368254515');
+      await discordSdk.ready();
+      window.location.replace('../game.html');
+    }catch(error){
+      console.error(error);
+      fail('Discord konnte die Activity nicht initialisieren. Prüfe die Activity-URL-Zuordnungen.');
+    }
+  </script>
+</body>
+</html>
