@@ -1,134 +1,21 @@
 (() => {
   'use strict';
-
-  const BASE_KEY = 'dont-stop-save-v2';
-  const LEGACY_KEYS = ['dont-stop-save-v1'];
-  const defaults = {
-    version: 2,
-    playerName: 'Player',
-    level: 1,
-    unlockedLevels: [1],
-    selectedLevel: 1,
-    xp: 0,
-    coins: 0,
-    gems: 0,
-    bestScore: 0,
-    bestTime: 0,
-    bestCombo: 0,
-    inventory: [],
-    equipped: {},
-    achievements: [],
-    missions: {},
-    missionClaimed: {},
-    upgrades: {},
-    ownedCharacters: ['starter'],
-    ownedTrails: ['none'],
-    progression: { world: 'city', prestige: 0, dailyStreak: 0, dailyClaimedAt: '', highestLevel: 1, character: 'starter', trail: 'none' },
-    season: {},
-    settings: { music: true, sfx: true, haptics: true, graphics: 'high', language: 'de' },
-    progress: {},
-    updatedAt: Date.now()
-  };
-
-  function activeUser() {
-    try {
-      const username = (localStorage.getItem('dontStopSessionV1') || '').trim();
-      return username || 'guest';
-    } catch { return 'guest'; }
-  }
-
-  function storageKey(username = activeUser()) {
-    const safe = String(username || 'guest').trim().toLowerCase().replace(/[^a-z0-9_-]/gi, '_').slice(0, 40) || 'guest';
-    return `${BASE_KEY}:${safe}`;
-  }
-
-  function safeClone(value) { return JSON.parse(JSON.stringify(value)); }
-
-  function deepMerge(target, source) {
-    for (const key of Object.keys(source || {})) {
-      const value = source[key];
-      if (value && typeof value === 'object' && !Array.isArray(value) && typeof target[key] === 'object' && target[key] !== null && !Array.isArray(target[key])) deepMerge(target[key], value);
-      else target[key] = value;
-    }
-    return target;
-  }
-
-  function normalize(state) {
-    state.unlockedLevels = Array.from(new Set([1, ...(state.unlockedLevels || [])].map(Number))).filter(Number.isFinite).sort((a,b) => a-b);
-    state.selectedLevel = Math.max(1, Math.min(150, Number(state.selectedLevel) || 1));
-    state.coins = Math.max(0, Number(state.coins) || 0);
-    state.gems = Math.max(0, Number(state.gems) || 0);
-    state.bestScore = Math.max(0, Number(state.bestScore) || 0);
-    state.bestTime = Math.max(0, Number(state.bestTime) || 0);
-    state.bestCombo = Math.max(0, Number(state.bestCombo) || 0);
-    state.progression = deepMerge(safeClone(defaults.progression), state.progression || {});
-    state.progression.prestige = Math.max(0, Number(state.progression.prestige) || 0);
-    state.progression.highestLevel = Math.max(1, Number(state.progression.highestLevel) || 1, ...state.unlockedLevels);
-    state.upgrades = state.upgrades || {};
-    state.ownedCharacters = Array.from(new Set(['starter', ...(state.ownedCharacters || [])]));
-    state.ownedTrails = Array.from(new Set(['none', ...(state.ownedTrails || [])]));
-    return state;
-  }
-
-  function read(username = activeUser()) {
-    try {
-      const key = storageKey(username);
-      let raw = localStorage.getItem(key);
-      if (!raw && username === 'guest') raw = localStorage.getItem(BASE_KEY) || localStorage.getItem(LEGACY_KEYS[0]);
-      if (!raw) return safeClone(defaults);
-      return normalize(deepMerge(safeClone(defaults), JSON.parse(raw)));
-    } catch { return safeClone(defaults); }
-  }
-
-  function write(data, username = activeUser()) {
-    try {
-      const safe = normalize(deepMerge(safeClone(defaults), data || {}));
-      safe.updatedAt = Date.now();
-      localStorage.setItem(storageKey(username), JSON.stringify(safe));
-      if (username === 'guest') localStorage.removeItem(BASE_KEY);
-      window.dispatchEvent(new CustomEvent('dontstop:saved', { detail: safe }));
-      return true;
-    } catch { return false; }
-  }
-
-  function set(patch, username = activeUser()) { return write(deepMerge(read(username), patch || {}), username); }
-  function clear(username = activeUser()) { try { localStorage.removeItem(storageKey(username)); return true; } catch { return false; } }
-  function hasSave(username = activeUser()) { try { return Boolean(localStorage.getItem(storageKey(username)) || (username === 'guest' && (localStorage.getItem(BASE_KEY) || localStorage.getItem(LEGACY_KEYS[0])))); } catch { return false; } }
-  function migrateGuestTo(username) {
-    try {
-      const target = String(username || '').trim();
-      if (!target || target.toLowerCase() === 'guest') return false;
-      const targetKey = storageKey(target);
-      if (localStorage.getItem(targetKey)) return true;
-      const raw = localStorage.getItem(storageKey('guest')) || localStorage.getItem(BASE_KEY) || localStorage.getItem(LEGACY_KEYS[0]);
-      if (!raw) return true;
-      const state = normalize(deepMerge(safeClone(defaults), JSON.parse(raw)));
-      state.playerName = target;
-      localStorage.setItem(targetKey, JSON.stringify(state));
-      return true;
-    } catch { return false; }
-  }
-
-  function saveImmediately() { write(read()); }
-
-  window.DontStopSave = { read, write, set, clear, hasSave, saveImmediately, migrateGuestTo };
-  window.addEventListener('pagehide', saveImmediately, { capture: true });
-  window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveImmediately(); });
-  window.addEventListener('beforeunload', saveImmediately);
-
-  // Feature UI is App-only. Never load it on the public GitHub Pages website.
-  const isNativeApp = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  function loadFeatures() {
-    if (!isNativeApp || location.pathname.endsWith('/game.html')) return;
-    if (window.__dontStopFeaturesLoaded || !document.body) return;
-    window.__dontStopFeaturesLoaded = true;
-    const script = document.createElement('script');
-    script.src = './features.js?v=ultimate3';
-    script.async = true;
-    script.onload = () => window.dispatchEvent(new Event('dontstop:features-ready'));
-    script.onerror = () => { window.__dontStopFeaturesLoaded = false; };
-    document.body.appendChild(script);
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadFeatures, { once: true });
-  else loadFeatures();
+  const BASE_KEY='dont-stop-save-v2', LEGACY_KEYS=['dont-stop-save-v1'];
+  const defaults={version:2,playerName:'Player',level:1,unlockedLevels:[1],selectedLevel:1,xp:0,coins:0,gems:0,bestScore:0,bestTime:0,bestCombo:0,inventory:[],equipped:{},achievements:[],missions:{},missionClaimed:{},upgrades:{},ownedCharacters:['starter'],ownedTrails:['none'],progression:{world:'city',prestige:0,dailyStreak:0,dailyClaimedAt:'',highestLevel:1,character:'starter',trail:'none'},season:{},settings:{music:true,sfx:true,haptics:true,graphics:'high',language:'de'},progress:{},updatedAt:Date.now()};
+  const activeUser=()=>{try{return(localStorage.getItem('dontStopSessionV1')||'').trim()||'guest'}catch{return'guest'}};
+  const storageKey=(u=activeUser())=>`${BASE_KEY}:${String(u||'guest').trim().toLowerCase().replace(/[^a-z0-9_-]/gi,'_').slice(0,40)||'guest'}`;
+  const clone=v=>JSON.parse(JSON.stringify(v));
+  function merge(t,s){for(const k of Object.keys(s||{})){const v=s[k];if(v&&typeof v==='object'&&!Array.isArray(v)&&t[k]&&typeof t[k]==='object'&&!Array.isArray(t[k]))merge(t[k],v);else t[k]=v}return t}
+  function normalize(s){s.unlockedLevels=Array.from(new Set([1,...(s.unlockedLevels||[])].map(Number))).filter(Number.isFinite).sort((a,b)=>a-b);s.selectedLevel=Math.max(1,Math.min(150,Number(s.selectedLevel)||1));s.coins=Math.max(0,Number(s.coins)||0);s.gems=Math.max(0,Number(s.gems)||0);s.bestScore=Math.max(0,Number(s.bestScore)||0);s.bestTime=Math.max(0,Number(s.bestTime)||0);s.bestCombo=Math.max(0,Number(s.bestCombo)||0);s.progression=merge(clone(defaults.progression),s.progression||{});s.progression.highestLevel=Math.max(1,Number(s.progression.highestLevel)||1,...s.unlockedLevels);s.progression.prestige=Math.max(0,Number(s.progression.prestige)||0);s.upgrades={...(s.upgrades||{})};s.ownedCharacters=Array.from(new Set(['starter',...(s.ownedCharacters||[])]));s.ownedTrails=Array.from(new Set(['none',...(s.ownedTrails||[])]));return s}
+  function read(u=activeUser()){try{let raw=localStorage.getItem(storageKey(u));if(!raw&&u==='guest')raw=localStorage.getItem(BASE_KEY)||localStorage.getItem(LEGACY_KEYS[0]);return raw?normalize(merge(clone(defaults),JSON.parse(raw))):clone(defaults)}catch{return clone(defaults)}}
+  function write(data,u=activeUser()){try{const safe=normalize(merge(clone(defaults),data||{}));safe.updatedAt=Date.now();localStorage.setItem(storageKey(u),JSON.stringify(safe));window.dispatchEvent(new CustomEvent('dontstop:saved',{detail:safe}));return true}catch{return false}}
+  function set(p,u=activeUser()){return write(merge(read(u),p||{}),u)}
+  function clear(u=activeUser()){try{localStorage.removeItem(storageKey(u));return true}catch{return false}}
+  function hasSave(u=activeUser()){try{return Boolean(localStorage.getItem(storageKey(u))||(u==='guest'&&(localStorage.getItem(BASE_KEY)||localStorage.getItem(LEGACY_KEYS[0]))))}catch{return false}}
+  function migrateGuestTo(u){try{if(!u||u==='guest')return false;const key=storageKey(u);if(localStorage.getItem(key))return true;const raw=localStorage.getItem(storageKey('guest'))||localStorage.getItem(BASE_KEY)||localStorage.getItem(LEGACY_KEYS[0]);if(!raw)return true;const s=normalize(merge(clone(defaults),JSON.parse(raw)));s.playerName=u;localStorage.setItem(key,JSON.stringify(s));return true}catch{return false}}
+  function saveImmediately(){write(read())}
+  window.DontStopSave={read,write,set,clear,hasSave,saveImmediately,migrateGuestTo};
+  window.addEventListener('pagehide',saveImmediately,{capture:true});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveImmediately()});
+  window.addEventListener('beforeunload',saveImmediately);
 })();
