@@ -2,8 +2,7 @@ name: Build DONT STOP Android
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -21,35 +20,22 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Read app version
+      - name: Read version
         id: version
-        shell: bash
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
-      - name: Create build metadata
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const pkg = require('./package.json');
-          fs.writeFileSync('build-info.js', `window.DontStopBuild = { version: '${pkg.version}', commit: '${process.env.GITHUB_SHA}', run: ${process.env.GITHUB_RUN_NUMBER} };\n`);
-          NODE
-      - name: Prepare web files
-        shell: bash
+      - name: Prepare web bundle
         run: |
           rm -rf www
           mkdir -p www/assets
           cp index.html progress.html game.html game.js save.js auth.js realism.js update.js progression.js levels20.js features.js build-info.js manifest.webmanifest icon.svg www/
           cp assets/*.svg www/assets/
       - name: Create Android project
-        shell: bash
         run: npx cap add android
-      - name: Install native updater and signing configuration
-        shell: bash
+      - name: Add updater and release signing
         env:
-          APP_VERSION: ${{ steps.version.outputs.version }}
           SIGNING_STORE_FILE: ${{ runner.temp }}/dontstop-release.jks
         run: |
           MAIN_ACTIVITY=$(find android/app/src/main/java -name MainActivity.java | head -n 1)
@@ -61,51 +47,74 @@ jobs:
           base64 -d native/android/dontstop-release.jks.b64 > "$SIGNING_STORE_FILE"
           test -s "$SIGNING_STORE_FILE"
           python3 - <<'PY'
-          from pathlib import Path
-          import os
-          import re
-          main = next(Path('android/app/src/main/java').rglob('MainActivity.java'))
-          text = main.read_text()
-          import_line = 'import com.stikerpo.dontstop.DontStopUpdater;'
-          marker = 'import com.getcapacitor.BridgeActivity;'
-          if import_line not in text:
-              if marker not in text: raise SystemExit('BridgeActivity-Import in MainActivity.java nicht gefunden.')
-              text = text.replace(marker, marker + '\n' + import_line)
-          marker = 'public class MainActivity extends BridgeActivity {'
-          if 'registerPlugin(DontStopUpdater.class);' not in text:
-              if marker not in text: raise SystemExit('MainActivity-Klasse nicht gefunden.')
-              text = text.replace(marker, marker + '''\n    @Override\n    public void onCreate(android.os.Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        registerPlugin(DontStopUpdater.class);\n    }''')
-          main.write_text(text)
-          manifest = Path('android/app/src/main/AndroidManifest.xml')
-          text = manifest.read_text()
-          permission = '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
-          if permission not in text:
-              match = re.search(r'<manifest\\b[^>]*>', text)
-              if not match: raise SystemExit('AndroidManifest.xml: <manifest>-Element nicht gefunden.')
-              text = text[:match.end()] + '\n    ' + permission + text[match.end():]
-          provider = '''\n        <provider\n            android:name="androidx.core.content.FileProvider"\n            android:authorities="${applicationId}.fileprovider"\n            android:exported="false"\n            android:grantUriPermissions="true">\n            <meta-data\n                android:name="android.support.FILE_PROVIDER_PATHS"\n                android:resource="@xml/file_paths" />\n        </provider>'''
-          if 'androidx.core.content.FileProvider' not in text:
-              if '</application>' not in text: raise SystemExit('AndroidManifest.xml: </application> nicht gefunden.')
-              text = text.replace('</application>', provider + '\n    </application>')
-          manifest.write_text(text)
-          gradle = Path('android/app/build.gradle')
-          text = gradle.read_text()
-          version_code = 1000 + int(os.environ['GITHUB_RUN_NUMBER'])
-          text, count = re.subn(r'(?m)^\s*versionCode\s+\d+', f'        versionCode {version_code}', text, count=1)
-          if count != 1: raise SystemExit('build.gradle: versionCode nicht gefunden.')
-          text, count = re.subn(r'(?m)^\s*versionName\s+"[^"]+"', f'        versionName "{os.environ["APP_VERSION"]}"', text, count=1)
-          if count != 1: raise SystemExit('build.gradle: versionName nicht gefunden.')
-          signing = '''    signingConfigs {\n        release {\n            storeFile file(System.getenv("SIGNING_STORE_FILE"))\n            storePassword System.getenv("SIGNING_STORE_PASSWORD")\n            keyAlias System.getenv("SIGNING_KEY_ALIAS")\n            keyPassword System.getenv("SIGNING_KEY_PASSWORD")\n        }\n    }\n\n'''
-          if 'signingConfigs {' not in text:
-              marker = '    buildTypes {'
-              if marker not in text: raise SystemExit('build.gradle: buildTypes nicht gefunden.')
-              text = text.replace(marker, signing + marker, 1)
-          text, count = re.subn(r'(?s)(buildTypes\s*\{\s*release\s*\{)', r'\1\n            signingConfig signingConfigs.release', text, count=1)
-          if count != 1: raise SystemExit('build.gradle: release signingConfig konnte nicht gesetzt werden.')
-          gradle.write_text(text)
-          PY
-      - name: Sync Android project
-        shell: bash
+from pathlib import Path
+import os
+import re
+
+main = next(Path('android/app/src/main/java').rglob('MainActivity.java'))
+text = main.read_text()
+imp = 'import com.stikerpo.dontstop.DontStopUpdater;'
+bridge = 'import com.getcapacitor.BridgeActivity;'
+if imp not in text:
+    if bridge not in text: raise SystemExit('BridgeActivity import missing')
+    text = text.replace(bridge, bridge + '\n' + imp, 1)
+cls = 'public class MainActivity extends BridgeActivity {'
+register = '''public class MainActivity extends BridgeActivity {\n    @Override\n    public void onCreate(android.os.Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        registerPlugin(DontStopUpdater.class);\n    }'''
+if 'registerPlugin(DontStopUpdater.class);' not in text:
+    if cls not in text: raise SystemExit('MainActivity class missing')
+    text = text.replace(cls, register, 1)
+main.write_text(text)
+
+manifest = Path('android/app/src/main/AndroidManifest.xml')
+text = manifest.read_text()
+permission = '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
+if permission not in text:
+    start = text.find('<manifest')
+    if start < 0: raise SystemExit('manifest tag missing')
+    end = text.find('>', start)
+    if end < 0: raise SystemExit('manifest tag end missing')
+    text = text[:end+1] + '\n    ' + permission + text[end+1:]
+provider = '''        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>'''
+if 'androidx.core.content.FileProvider' not in text:
+    close = text.find('</application>')
+    if close < 0: raise SystemExit('application close tag missing')
+    text = text[:close] + provider + '\n    ' + text[close:]
+manifest.write_text(text)
+
+gradle = Path('android/app/build.gradle')
+text = gradle.read_text()
+vc = 1000 + int(os.environ['GITHUB_RUN_NUMBER'])
+text, count = re.subn(r'(?m)^\s*versionCode\s+\d+', f'        versionCode {vc}', text, count=1)
+if count != 1: raise SystemExit('versionCode missing')
+text, count = re.subn(r'(?m)^\s*versionName\s+"[^"]+"', f'        versionName "{os.environ["APP_VERSION"]}"', text, count=1)
+if count != 1: raise SystemExit('versionName missing')
+signing = '''    signingConfigs {
+        release {
+            storeFile file(System.getenv("SIGNING_STORE_FILE"))
+            storePassword System.getenv("SIGNING_STORE_PASSWORD")
+            keyAlias System.getenv("SIGNING_KEY_ALIAS")
+            keyPassword System.getenv("SIGNING_KEY_PASSWORD")
+        }
+    }
+
+'''
+if 'signingConfigs {' not in text:
+    marker = '    buildTypes {'
+    if marker not in text: raise SystemExit('buildTypes missing')
+    text = text.replace(marker, signing + marker, 1)
+text, count = re.subn(r'(?s)(buildTypes\s*\{\s*release\s*\{)', r'\1\n            signingConfig signingConfigs.release', text, count=1)
+if count != 1: raise SystemExit('release signingConfig missing')
+gradle.write_text(text)
+PY
+      - name: Sync
         run: npx cap sync android
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -118,22 +127,19 @@ jobs:
           accept-android-sdk-licenses: true
       - name: Build signed APK
         working-directory: android
-        shell: bash
         env:
           SIGNING_STORE_FILE: ${{ runner.temp }}/dontstop-release.jks
           SIGNING_STORE_PASSWORD: dontstop-dev-2026
           SIGNING_KEY_ALIAS: dontstop
           SIGNING_KEY_PASSWORD: dontstop-dev-2026
         run: ./gradlew assembleRelease --no-daemon --stacktrace
-      - name: Verify APK signing
-        shell: bash
+      - name: Verify APK
         run: |
           APK=android/app/build/outputs/apk/release/app-release.apk
           test -s "$APK"
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
           "$APKSIGNER" verify --verbose "$APK"
-      - name: Prepare APK files
-        shell: bash
+      - name: Prepare release files
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk "DONT-STOP-v${APP_VERSION}-build${GITHUB_RUN_NUMBER}.apk"
           cp android/app/build/outputs/apk/release/app-release.apk "DONT-STOP.apk"
@@ -143,11 +149,9 @@ jobs:
           name: DONT-STOP-Android-${{ github.run_number }}
           path: "DONT-STOP-v${{ env.APP_VERSION }}-build${{ github.run_number }}.apk"
           if-no-files-found: error
-          overwrite: true
       - name: Publish Android release
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
           set -euo pipefail
           TAG=android-latest
