@@ -15,18 +15,42 @@
 <body>
   <div class="loading"><section class="card"><h1>DON’T STOP</h1><div id="status" class="muted">Discord Activity wird gestartet…</div></section></div>
   <script type="module">
-    const status=document.getElementById('status');
-    const fail=(message)=>{status.textContent=message;status.className='muted error';};
-    try{
-      // Discord's first-party Embedded App SDK is imported through the Activity's
-      // /sdk URL mapping. This keeps the Discord SDK out of the normal website/app.
-      const {DiscordSDK}=await import('/sdk/@discord/embedded-app-sdk@2.5.0');
-      const discordSdk=new DiscordSDK('1543556589368254515');
+    const CLIENT_ID = '1543556589368254515';
+    const status = document.getElementById('status');
+    const fail = (message) => {
+      status.textContent = message;
+      status.className = 'muted error';
+    };
+
+    try {
+      const { DiscordSDK } = await import('/sdk/@discord/embedded-app-sdk@2.5.0');
+      const discordSdk = new DiscordSDK(CLIENT_ID);
+
       await discordSdk.ready();
+
+      // Set the Activity Rich Presence while the Activity is running.
+      // Discord requires the rpc.activities.write scope for this command.
+      await discordSdk.commands.setActivity({
+        activity: {
+          type: 0,
+          details: "DON'T STOP",
+          state: 'Spielt gerade',
+          timestamps: { start: Math.floor(Date.now() / 1000) },
+          assets: {
+            large_image: 'dontstop_logo',
+            large_text: "DON'T STOP"
+          },
+          instance: true
+        }
+      });
+
+      status.textContent = 'Verbunden. DON’T STOP wird geladen…';
+
+      // Keep the Activity in the Discord client.
       window.location.replace('../game.html');
-    }catch(error){
-      console.error(error);
-      fail('Discord konnte die Activity nicht initialisieren. Prüfe die Activity-URL-Zuordnungen.');
+    } catch (error) {
+      console.error('Discord Activity error:', error);
+      fail('Discord konnte die Activity nicht starten. Prüfe URL-Mapping, Activity-Freigabe und rpc.activities.write.');
     }
   </script>
 </body>
