@@ -92,15 +92,8 @@
   }
 
   function set(patch, username = activeUser()) { return write(deepMerge(read(username), patch || {}), username); }
-
-  function clear(username = activeUser()) {
-    try { localStorage.removeItem(storageKey(username)); return true; } catch { return false; }
-  }
-
-  function hasSave(username = activeUser()) {
-    try { return Boolean(localStorage.getItem(storageKey(username)) || (username === 'guest' && (localStorage.getItem(BASE_KEY) || localStorage.getItem(LEGACY_KEYS[0])))); } catch { return false; }
-  }
-
+  function clear(username = activeUser()) { try { localStorage.removeItem(storageKey(username)); return true; } catch { return false; } }
+  function hasSave(username = activeUser()) { try { return Boolean(localStorage.getItem(storageKey(username)) || (username === 'guest' && (localStorage.getItem(BASE_KEY) || localStorage.getItem(LEGACY_KEYS[0])))); } catch { return false; } }
   function migrateGuestTo(username) {
     try {
       const target = String(username || '').trim();
@@ -123,16 +116,15 @@
   window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveImmediately(); });
   window.addEventListener('beforeunload', saveImmediately);
 
-  // The 3D game page must stay independent from the feature UI.
-  // Loading the feature layer here used to inject extra UI after the game
-  // started and could interfere with the game's own interaction layer.
+  // Feature UI is App-only. Never load it on the public GitHub Pages website.
+  const isNativeApp = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   function loadFeatures() {
-    if (location.pathname.endsWith('/game.html')) return;
+    if (!isNativeApp || location.pathname.endsWith('/game.html')) return;
     if (window.__dontStopFeaturesLoaded || !document.body) return;
     window.__dontStopFeaturesLoaded = true;
     const script = document.createElement('script');
-    script.src = './features.js?v=ultimate2';
-    script.async = false;
+    script.src = './features.js?v=ultimate3';
+    script.async = true;
     script.onload = () => window.dispatchEvent(new Event('dontstop:features-ready'));
     script.onerror = () => { window.__dontStopFeaturesLoaded = false; };
     document.body.appendChild(script);
