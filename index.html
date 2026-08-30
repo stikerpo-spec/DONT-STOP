@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#080b16">
 <meta name="description" content="DON’T STOP – offizieller Download und installierbare App.">
 <title>DON’T STOP</title>
@@ -14,13 +14,24 @@ html,body{margin:0;min-height:100%;background:#070912;color:var(--text);font-fam
 body{padding:20px}.wrap{width:min(1100px,100%);margin:auto}.card{background:#0d111f;border:1px solid var(--line);border-radius:28px;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.36)}
 .brand{display:flex;gap:15px;align-items:center}.logo{width:72px;height:72px;border-radius:18px}.brand h1{margin:0;font-size:clamp(2.5rem,7vw,4.7rem);letter-spacing:-.06em}.tag{display:inline-block;margin-top:7px;padding:6px 10px;border-radius:999px;background:rgba(40,227,173,.08);border:1px solid rgba(40,227,173,.18);color:#91f3d8;font-size:.78rem;font-weight:900}
 .hero{margin-top:22px;padding:20px;border-radius:22px;border:1px solid rgba(115,92,255,.25);background:#12182b}.hero h2{margin:0 0 7px}.hero p{margin:0;color:var(--muted);line-height:1.6}
-.website,.app{margin-top:22px}.app{display:none}.native .website{display:none}.native .app{display:block}
+.website{display:block;margin-top:22px}.app{display:none;margin-top:22px}.native .website{display:none}.native .app{display:block}
 .downloads{display:grid;grid-template-columns:1fr 1fr;gap:14px}.download{padding:20px;border:1px solid var(--line);border-radius:20px;background:#0f1424}.download h3{margin:0 0 7px}.download p{color:var(--muted);font-size:.9rem;line-height:1.55;min-height:50px}
 .btn{width:100%;min-height:50px;border:1px solid var(--line);border-radius:15px;background:#151b2c;color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:center;font-weight:900;cursor:pointer;touch-action:manipulation}.btn.primary{background:linear-gradient(135deg,var(--accent),#a24dff);border-color:transparent}
 .note{margin-top:14px;padding:13px 15px;border-radius:15px;background:#0e1321;color:var(--muted);font-size:.82rem;line-height:1.5}.balance{margin-top:18px;display:flex;justify-content:space-between;align-items:center;padding:15px 17px;border-radius:17px;background:rgba(255,202,69,.07);border:1px solid rgba(255,202,69,.22)}.coin{color:var(--gold);font-size:1.4rem;font-weight:950}
 .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.level{padding:16px;border-radius:18px;border:1px solid var(--line);background:#0f1424}.level h3{margin:0 0 5px}.level p{margin:0 0 10px;color:var(--muted);font-size:.82rem;min-height:40px}.price{color:var(--gold);font-weight:900;font-size:.85rem;margin-bottom:10px}.small{font-size:.77rem;color:var(--muted);text-align:center;margin-top:13px}
 @media(max-width:800px){.downloads,.levels{grid-template-columns:1fr}.card{padding:20px}}
 </style>
+<script>
+(() => {
+  const githubPages = location.hostname.endsWith('.github.io');
+  const native = !githubPages && (location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1' || /Capacitor/i.test(navigator.userAgent));
+  if (native) document.documentElement.classList.add('native');
+  if (githubPages && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+    if (window.caches) caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(() => {});
+  }
+})();
+</script>
 </head>
 <body>
 <main class="wrap"><section class="card">
@@ -34,15 +45,15 @@ body{padding:20px}.wrap{width:min(1100px,100%);margin:auto}.card{background:#0d1
 </section></main>
 <script>
 (() => {
-  const native = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  if (!native) return;
-  document.documentElement.classList.add('native');
-  const scripts = ['./save.js','./auth.js','./progression.js','./levels20.js'];
-  for (const src of scripts) { const s=document.createElement('script'); s.src=src; s.async=false; document.body.appendChild(s); }
-  window.addEventListener('load', () => {
-    const draw = () => { const c=document.getElementById('coins'); const save=window.DontStopSave; if(c&&save)c.textContent=Number(save.read().coins||0).toLocaleString('de-DE'); };
-    draw(); window.addEventListener('dontstop:saved', draw);
-  }, {once:true});
+  if (!document.documentElement.classList.contains('native')) return;
+  for (const src of ['./save.js?v=android','./auth.js?v=android','./progression.js?v=android','./levels20.js?v=android']) {
+    const s=document.createElement('script'); s.src=src; s.async=false; document.body.appendChild(s);
+  }
+  const levelData={1:['NORMAL',0,'Ruhiges Tempo. Perfekt zum Start.'],2:['SCHNELL',15,'Schneller. Erste Doppel-Hindernisse.'],3:['HART',40,'Deutlich weniger Reaktionszeit.'],4:['EXTREM',90,'Hohes Tempo und dichteres Timing.'],5:['CHAOS',180,'Fiese Kombinationen und hohe Geschwindigkeit.'],6:['TURBO',350,'Das Tempo zieht richtig an.'],7:['NERVEN',650,'Doppel-Hindernisse kommen häufiger.'],8:['RISKANT',1100,'Neue Ketten aus mehreren Hindernissen.'],9:['BRUTAL',1800,'Extrem wenig Zeit für Fehler.'],10:['MASTER',3000,'Nur mit sauberem Timing.'],11:['APEX',5000,'Sehr hohes Tempo und harte Muster.'],12:['INSANE',8000,'Fast jeder Abschnitt fordert volle Konzentration.'],13:['NIGHTMARE',12500,'Dichte Hindernisse und kaum Leerlauf.'],14:['OVERLOAD',20000,'Ketten wechseln schnell die sichere Spur.'],15:['MERCILESS',32000,'Nur konstante Spieler kommen weit.'],16:['GODLIKE',50000,'Extremes Tempo mit brutalen Sequenzen.'],17:['APOCALYPSE',80000,'Fast kein Raum für einen schlechten Move.'],18:['IMPOSSIBLE',125000,'Für absolute Grind-Profis.'],19:['LEGEND',200000,'Eine der härtesten Herausforderungen.'],20:['ULTIMATE',325000,'Das Endgame. Jeder Run zählt.']};
+  const getSave=()=>window.DontStopSave?.read?.()||{coins:0,selectedLevel:1,unlockedLevels:[1]};
+  const render=()=>{const s=getSave();const unlocked=new Set((s.unlockedLevels||[1]).map(Number));const selected=Math.min(20,Math.max(1,Number(s.selectedLevel||1)));const coins=document.getElementById('coins');const levels=document.getElementById('levels');if(coins)coins.textContent=Number(s.coins||0).toLocaleString('de-DE');if(!levels||levels.dataset.ready)return;levels.dataset.ready='1';for(let i=1;i<=20;i++){const [name,cost,desc]=levelData[i];const card=document.createElement('div');card.className='level';card.innerHTML=`<h3>Level ${i}</h3><b>${name}</b><p>${desc}</p><div class="price">${cost?`🪙 ${cost.toLocaleString('de-DE')} Coins`:'KOSTENLOS'}</div>`;const b=document.createElement('button');b.className='btn '+(unlocked.has(i)?'primary':'');b.disabled=!unlocked.has(i)&&Number(s.coins||0)<cost;b.textContent=unlocked.has(i)?(selected===i?'AUSGEWÄHLT':'AUSWÄHLEN'):`FREISCHALTEN • ${cost.toLocaleString('de-DE')} 🪙`;b.onclick=()=>{const latest=getSave();const have=new Set((latest.unlockedLevels||[1]).map(Number));if(have.has(i)){window.DontStopSave.set({selectedLevel:i});render();return;}if(Number(latest.coins||0)<cost)return;have.add(i);if(window.DontStopSave.set({coins:Number(latest.coins||0)-cost,unlockedLevels:[...have],selectedLevel:i}))render();};card.appendChild(b);levels.appendChild(card)}};
+  let tries=0;const wait=()=>{if(window.DontStopSave){render();return}if(++tries<80)setTimeout(wait,25)};wait();
 })();
 </script>
-</body></html>
+</body>
+</html>
