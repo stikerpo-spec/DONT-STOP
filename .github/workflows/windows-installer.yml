@@ -2,8 +2,7 @@ name: Build DONT STOP Windows
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -24,6 +23,9 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Validate source
+        run: npm run check
+
       - name: Read app version
         id: version
         shell: pwsh
@@ -39,6 +41,12 @@ jobs:
 
       - name: Build Windows installer
         run: npm run desktop:build
+
+      - name: Verify installer
+        shell: pwsh
+        run: |
+          if (!(Test-Path 'dist/DONT-STOP-Setup.exe')) { throw 'Windows installer missing' }
+          if ((Get-Item 'dist/DONT-STOP-Setup.exe').Length -lt 50000) { throw 'Windows installer unexpectedly small' }
 
       - name: Prepare installer files
         shell: pwsh
@@ -63,9 +71,8 @@ jobs:
           $repo = $env:GITHUB_REPOSITORY
           $versioned = "dist/DONT-STOP-Setup-v$env:APP_VERSION-build${env:GITHUB_RUN_NUMBER}.exe"
           $stable = 'dist/DONT-STOP-Setup.exe'
-
           if (gh release view $tag --repo $repo 2>$null) {
             gh release upload $tag $versioned $stable --repo $repo --clobber
           } else {
-            gh release create $tag $versioned $stable --repo $repo --title 'DONT STOP Windows' --notes 'Aktueller realistischer 3D-Windows-Installer von DONT STOP.' --latest=false
+            gh release create $tag $versioned $stable --repo $repo --title 'DONT STOP Windows' --notes 'Aktueller DONT STOP Windows-Installer.' --latest=false
           }
