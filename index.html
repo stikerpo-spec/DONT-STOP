@@ -1,13 +1,48 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#080b16"><title>DON’T STOP</title><link rel="icon" href="./icon.svg" type="image/svg+xml">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080b16">
+<meta name="description" content="DON’T STOP – offizieller Download und installierbare App.">
+<title>DON’T STOP</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
 <style>
-:root{--panel:#101527;--line:rgba(255,255,255,.11);--text:#fff;--muted:#a5aec5;--accent:#735cff;--gold:#ffe27a}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#070912;color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{padding:20px}.wrap{width:min(1100px,100%);margin:auto}.card{background:#0d111f;border:1px solid var(--line);border-radius:28px;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.36)}.brand{display:flex;gap:15px;align-items:center}.logo{width:72px;height:72px;border-radius:18px}.brand h1{margin:0;font-size:clamp(2.5rem,7vw,4.7rem);letter-spacing:-.06em}.tag{display:inline-block;margin-top:7px;padding:6px 10px;border-radius:999px;background:rgba(40,227,173,.08);border:1px solid rgba(40,227,173,.18);color:#91f3d8;font-size:.78rem;font-weight:900}.hero{margin-top:22px;padding:20px;border-radius:22px;border:1px solid rgba(115,92,255,.25);background:#12182b}.hero h2{margin:0 0 7px}.hero p{margin:0;color:var(--muted);line-height:1.6}.website,.app{margin-top:22px}.app{display:none}.native .website{display:none}.native .app{display:block}.downloads{display:grid;grid-template-columns:1fr 1fr;gap:14px}.download{padding:20px;border:1px solid var(--line);border-radius:20px;background:#0f1424}.download h3{margin:0 0 7px}.download p{color:var(--muted);font-size:.9rem;line-height:1.55;min-height:50px}.btn{width:100%;min-height:50px;border:1px solid var(--line);border-radius:15px;background:#151b2c;color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:center;font-weight:900;cursor:pointer;touch-action:manipulation}.btn.primary{background:linear-gradient(135deg,var(--accent),#a24dff);border-color:transparent}.note{margin-top:14px;padding:13px 15px;border-radius:15px;background:#0e1321;color:var(--muted);font-size:.82rem;line-height:1.5}.balance{margin-top:18px;display:flex;justify-content:space-between;align-items:center;padding:15px 17px;border-radius:17px;background:rgba(255,202,69,.07);border:1px solid rgba(255,202,69,.22)}.coin{color:var(--gold);font-size:1.4rem;font-weight:950}.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.level{padding:16px;border-radius:18px;border:1px solid var(--line);background:#0f1424}.level h3{margin:0 0 5px}.level p{margin:0 0 10px;color:var(--muted);font-size:.82rem;min-height:40px}.price{color:var(--gold);font-weight:900;font-size:.85rem;margin-bottom:10px}.small{font-size:.77rem;color:var(--muted);text-align:center;margin-top:13px}@media(max-width:800px){.downloads,.levels{grid-template-columns:1fr}.card{padding:20px}}
+:root{--panel:#101527;--line:rgba(255,255,255,.11);--text:#fff;--muted:#a5aec5;--accent:#735cff;--gold:#ffe27a}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#070912;color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{padding:20px}.wrap{width:min(1100px,100%);margin:auto}.card{background:#0d111f;border:1px solid var(--line);border-radius:28px;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.36)}
+.brand{display:flex;gap:15px;align-items:center}.logo{width:72px;height:72px;border-radius:18px}.brand h1{margin:0;font-size:clamp(2.5rem,7vw,4.7rem);letter-spacing:-.06em}.tag{display:inline-block;margin-top:7px;padding:6px 10px;border-radius:999px;background:rgba(40,227,173,.08);border:1px solid rgba(40,227,173,.18);color:#91f3d8;font-size:.78rem;font-weight:900}
+.hero{margin-top:22px;padding:20px;border-radius:22px;border:1px solid rgba(115,92,255,.25);background:#12182b}.hero h2{margin:0 0 7px}.hero p{margin:0;color:var(--muted);line-height:1.6}
+.website,.app{margin-top:22px}.app{display:none}.native .website{display:none}.native .app{display:block}
+.downloads{display:grid;grid-template-columns:1fr 1fr;gap:14px}.download{padding:20px;border:1px solid var(--line);border-radius:20px;background:#0f1424}.download h3{margin:0 0 7px}.download p{color:var(--muted);font-size:.9rem;line-height:1.55;min-height:50px}
+.btn{width:100%;min-height:50px;border:1px solid var(--line);border-radius:15px;background:#151b2c;color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:center;font-weight:900;cursor:pointer;touch-action:manipulation}.btn.primary{background:linear-gradient(135deg,var(--accent),#a24dff);border-color:transparent}
+.note{margin-top:14px;padding:13px 15px;border-radius:15px;background:#0e1321;color:var(--muted);font-size:.82rem;line-height:1.5}.balance{margin-top:18px;display:flex;justify-content:space-between;align-items:center;padding:15px 17px;border-radius:17px;background:rgba(255,202,69,.07);border:1px solid rgba(255,202,69,.22)}.coin{color:var(--gold);font-size:1.4rem;font-weight:950}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.level{padding:16px;border-radius:18px;border:1px solid var(--line);background:#0f1424}.level h3{margin:0 0 5px}.level p{margin:0 0 10px;color:var(--muted);font-size:.82rem;min-height:40px}.price{color:var(--gold);font-weight:900;font-size:.85rem;margin-bottom:10px}.small{font-size:.77rem;color:var(--muted);text-align:center;margin-top:13px}
+@media(max-width:800px){.downloads,.levels{grid-template-columns:1fr}.card{padding:20px}}
 </style>
-</head><body><main class="wrap"><section class="card"><div class="brand"><img class="logo" src="./icon.svg" alt="DON’T STOP"><div><h1>DON’T STOP</h1><span class="tag">AUSWEICHEN • GRINDEN • FREISCHALTEN</span></div></div><section class="hero"><h2>Wie weit kommst du?</h2><p>Weiche Hindernissen aus, sammle Coins und schalte immer schwierigere Level frei.</p></section><section class="website"><div class="downloads"><div class="download"><h3>🖥️ Windows</h3><p>Aktueller Windows-Installer.</p><a class="btn primary" href="https://github.com/stikerpo-spec/DONT-STOP/releases/download/windows-latest/DONT-STOP-Setup-v1.3.1-build106.exe">WINDOWS HERUNTERLADEN</a></div><div class="download"><h3>📱 Android</h3><p>Aktuelle Android-APK.</p><a class="btn primary" href="https://github.com/stikerpo-spec/DONT-STOP/releases/download/android-latest/DONT-STOP-v1.3.1-build106.apk">ANDROID HERUNTERLADEN</a></div></div><div class="note">Die Buttons führen direkt zu den veröffentlichten Installer-Dateien auf GitHub.</div></section><section class="app"><div class="balance"><span>Deine Coins</span><span class="coin">🪙 <span id="coins">0</span></span></div><section class="levels" id="levels"></section><a class="btn primary" style="margin-top:16px" href="./game.html">▶ AUSGEWÄHLTES LEVEL SPIELEN</a><div class="small">Der Spielstand wird lokal auf dem Gerät gespeichert.</div></section></section></main>
-<script>window.addEventListener('DOMContentLoaded',()=>{const native=location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';if(native)document.documentElement.classList.add('native');if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});if(window.caches)caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});});</script>
-<script src="./save.js"></script>
-<script>if(document.documentElement.classList.contains('native')){for(const src of ['./auth.js','./progression.js','./levels20.js']){const e=document.createElement('script');e.src=src;e.async=false;document.body.appendChild(e)}}</script>
-<script>(()=>{if(!document.documentElement.classList.contains('native'))return;const s=()=>window.DontStopSave?.read?.()||{};const c=document.getElementById('coins');const draw=()=>{if(c)c.textContent=Number(s().coins||0).toLocaleString('de-DE')};draw();window.addEventListener('dontstop:saved',draw)})();</script>
+</head>
+<body>
+<main class="wrap"><section class="card">
+<div class="brand"><img class="logo" src="./icon.svg" alt="DON’T STOP"><div><h1>DON’T STOP</h1><span class="tag">AUSWEICHEN • GRINDEN • FREISCHALTEN</span></div></div>
+<section class="hero"><h2>Wie weit kommst du?</h2><p>Weiche Hindernissen aus, sammle Coins und schalte immer schwierigere Level frei.</p></section>
+<section class="website"><div class="downloads">
+<div class="download"><h3>🖥️ Windows</h3><p>Aktueller Windows-Installer.</p><a class="btn primary" href="https://github.com/stikerpo-spec/DONT-STOP/releases/download/windows-latest/DONT-STOP-Setup.exe">WINDOWS HERUNTERLADEN</a></div>
+<div class="download"><h3>📱 Android</h3><p>Aktuelle Android-APK.</p><a class="btn primary" href="https://github.com/stikerpo-spec/DONT-STOP/releases/download/android-latest/DONT-STOP.apk">ANDROID HERUNTERLADEN</a></div>
+</div><div class="note">Die Downloads kommen direkt aus den öffentlichen DON’T STOP Releases.</div></section>
+<section class="app"><div class="balance"><span>Deine Coins</span><span class="coin">🪙 <span id="coins">0</span></span></div><section class="levels" id="levels"></section><a class="btn primary" style="margin-top:16px" href="./game.html">▶ AUSGEWÄHLTES LEVEL SPIELEN</a><div class="small">Der Spielstand wird lokal auf dem Gerät gespeichert.</div></section>
+</section></main>
+<script>
+(() => {
+  const native = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!native) return;
+  document.documentElement.classList.add('native');
+  const scripts = ['./save.js','./auth.js','./progression.js','./levels20.js'];
+  for (const src of scripts) { const s=document.createElement('script'); s.src=src; s.async=false; document.body.appendChild(s); }
+  window.addEventListener('load', () => {
+    const draw = () => { const c=document.getElementById('coins'); const save=window.DontStopSave; if(c&&save)c.textContent=Number(save.read().coins||0).toLocaleString('de-DE'); };
+    draw(); window.addEventListener('dontstop:saved', draw);
+  }, {once:true});
+})();
+</script>
 </body></html>
