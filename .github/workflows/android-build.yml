@@ -49,7 +49,7 @@ jobs:
         run: |
           rm -rf www
           mkdir -p www/assets
-          cp index.html progress.html game.html game-stable.js canvas-quality.js save.js auth.js update.js progression.js levels20.js features.js build-info.js manifest.webmanifest icon.svg www/
+          cp index.html progress.html game.html game-stable.js canvas-quality.js save.js auth.js update.js progression.js levels20.js features.js build-info.js discord-config.json discord-presence.js discord-game-hook.js manifest.webmanifest icon.svg www/
           cp assets/*.svg www/assets/
 
       - name: Validate web bundle
@@ -62,6 +62,8 @@ jobs:
           test -s www/save.js
           test -s www/update.js
           test -s www/progress.html
+          test -s www/discord-presence.js
+          test -s www/discord-game-hook.js
           for f in www/*.html; do
             grep -o 'src="[^"]*\.js[^\"]*"' "$f" | sed -E 's/src="([^\"]+)">/\1/' | while read -r src; do
               case "$src" in
