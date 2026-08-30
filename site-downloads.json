@@ -1,0 +1,5 @@
+{
+  "version": "1.3.1",
+  "windows": "https://github.com/stikerpo-spec/DONT-STOP/releases/download/windows-latest/DONT-STOP-Setup.exe",
+  "android": "https://github.com/stikerpo-spec/DONT-STOP/releases/download/android-latest/DONT-STOP.apk"
+}
