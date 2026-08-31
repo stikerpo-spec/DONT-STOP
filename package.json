@@ -1,6 +1,6 @@
 {
   "name":"dont-stop",
-  "version":"1.3.19",
+  "version":"1.3.20",
   "private":true,
   "description":"DON'T STOP - realistic endless runner for Android and Windows",
   "author":"stikerpo",
@@ -9,7 +9,7 @@
     "android:sync":"npx cap sync android",
     "desktop:start":"electron .",
     "desktop:build":"electron-builder --win nsis --x64 --publish never",
-    "check":"node --check game-stable.js && node --check save.js && node --check update.js && node --check progression.js && node --check levels20.js && node --check features.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check electron/discord-presence.cjs && node --check discord-native.js"
+    "check":"node --check game-stable.js && node --check save.js && node --check update.js && node --check progression.js && node --check levels20.js && node --check features.js && node --check interaction-fix.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check electron/discord-presence.cjs && node --check discord-native.js"
   },
   "dependencies":{
     "@capacitor/android":"8.5.0",
@@ -24,7 +24,7 @@
     "executableName":"DONT-STOP",
     "artifactName":"DONT-STOP-Setup.exe",
     "directories":{"output":"dist"},
-    "files":["electron/**/*","index.html","progress.html","game.html","game-stable.js","canvas-quality.js","discord-native.js","save.js","auth.js","update.js","progression.js","levels20.js","features.js","build-info.js","manifest.webmanifest","icon.svg","terms.html","privacy.html","assets/**/*"],
+    "files":["electron/**/*","index.html","progress.html","game.html","game-stable.js","canvas-quality.js","discord-native.js","interaction-fix.js","save.js","auth.js","update.js","progression.js","levels20.js","features.js","build-info.js","manifest.webmanifest","icon.svg","terms.html","privacy.html","assets/**/*"],
     "win":{"target":[{"target":"nsis","arch":["x64"]}]},
     "nsis":{"oneClick":false,"perMachine":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"createStartMenuShortcut":true,"shortcutName":"DON'T STOP","deleteAppDataOnUninstall":false,"runAfterFinish":true}
   }
