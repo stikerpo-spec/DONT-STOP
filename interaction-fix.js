@@ -1,61 +1,29 @@
 (() => {
   'use strict';
 
-  // Final UI interaction guard. It only fixes hit-testing; game logic stays untouched.
-  const UI_SELECTOR = [
-    'button',
-    'a',
-    '[role="button"]',
-    'input',
-    'select',
-    'textarea',
-    '.level-btn',
-    '.avatar-btn',
-    '.ds-feature-btn',
-    '.top-btn',
-    '.control',
-    '.btn'
-  ].join(',');
+  // Keep normal browser hit-testing. The previous capture listener stopped
+  // pointer events before button/link handlers could receive them.
+  const selectors = ['button','a','input','select','textarea','[role="button"]'];
 
-  function ensureUiHitTesting() {
-    document.querySelectorAll(UI_SELECTOR).forEach(el => {
+  function refresh() {
+    document.querySelectorAll(selectors.join(',')).forEach(el => {
       el.style.pointerEvents = 'auto';
       el.style.touchAction = 'manipulation';
-      if (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button') el.style.cursor = 'pointer';
+      if (el instanceof HTMLElement && !el.disabled) el.style.cursor = 'pointer';
     });
 
-    const canvas = document.getElementById('scene');
-    if (canvas) {
-      // The canvas remains fully visible and receives gameplay input only where no UI is present.
-      canvas.style.pointerEvents = 'auto';
-    }
-
-    const overlays = document.querySelectorAll('.overlay:not(.hidden)');
-    overlays.forEach(overlay => {
+    document.querySelectorAll('.overlay').forEach(overlay => {
+      const visible = !overlay.classList.contains('hidden');
       overlay.style.pointerEvents = 'none';
       const card = overlay.querySelector('.card');
-      if (card) card.style.pointerEvents = 'auto';
+      if (card) card.style.pointerEvents = visible ? 'auto' : 'none';
     });
   }
 
-  function routePointerTarget(event) {
-    const target = event.target instanceof Element ? event.target.closest(UI_SELECTOR) : null;
-    if (!target || target.disabled || target.getAttribute('aria-disabled') === 'true') return;
-
-    // Make sure dynamically created controls also receive normal browser click dispatch.
-    target.style.pointerEvents = 'auto';
-    target.style.touchAction = 'manipulation';
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', refresh, { once: true });
+  } else {
+    refresh();
   }
-
-  ensureUiHitTesting();
-  new MutationObserver(ensureUiHitTesting).observe(document.documentElement, {childList:true, subtree:true, attributes:true, attributeFilter:['class','style','disabled']});
-
-  document.addEventListener('pointerdown', routePointerTarget, true);
-  document.addEventListener('touchstart', routePointerTarget, {capture:true, passive:true});
-
-  // Never let the full-screen canvas cancel a tap that started on a UI control.
-  document.addEventListener('pointerdown', event => {
-    const target = event.target instanceof Element ? event.target.closest(UI_SELECTOR) : null;
-    if (target) event.stopPropagation();
-  }, true);
+  window.addEventListener('pageshow', refresh);
 })();
