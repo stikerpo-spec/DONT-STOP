@@ -61,9 +61,6 @@ jobs:
           $repo = $env:GITHUB_REPOSITORY
           $versioned = "dist/DONT-STOP-Setup-v$env:APP_VERSION-build${env:GITHUB_RUN_NUMBER}.exe"
           $stable = 'dist/DONT-STOP-Setup.exe'
-          if (gh release view $tag --repo $repo 2>$null) {
-            gh release delete-asset $tag "DONT-STOP-Setup.exe" --repo $repo --yes 2>$null || $true
-            gh release upload $tag $versioned $stable --repo $repo --clobber
-          } else {
-            gh release create $tag $versioned $stable --repo $repo --title 'DONT STOP Windows' --notes 'Aktueller DONT STOP Windows-Installer.' --latest=false
-          }
+          gh release delete $tag --repo $repo --cleanup-tag --yes 2>$null
+          if ($LASTEXITCODE -ne 0) { $LASTEXITCODE = 0 }
+          gh release create $tag $versioned $stable --repo $repo --title 'DONT STOP Windows' --notes "DONT STOP $env:APP_VERSION" --latest=false
