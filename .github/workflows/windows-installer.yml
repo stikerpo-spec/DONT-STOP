@@ -14,18 +14,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-
       - name: Validate source
         run: npm run check
-
       - name: Read app version
         id: version
         shell: pwsh
@@ -33,26 +29,21 @@ jobs:
           $version = node -p "require('./package.json').version"
           "version=$version" >> $env:GITHUB_OUTPUT
           "APP_VERSION=$version" >> $env:GITHUB_ENV
-
       - name: Create build metadata
         shell: pwsh
         run: |
           Set-Content -Path build-info.js -Value "window.DontStopBuild = { version: '$env:APP_VERSION', commit: '${env:GITHUB_SHA}', run: ${env:GITHUB_RUN_NUMBER} };"
-
       - name: Build Windows installer
         run: npm run desktop:build
-
       - name: Verify installer
         shell: pwsh
         run: |
           if (!(Test-Path 'dist/DONT-STOP-Setup.exe')) { throw 'Windows installer missing' }
           if ((Get-Item 'dist/DONT-STOP-Setup.exe').Length -lt 50000) { throw 'Windows installer unexpectedly small' }
-
       - name: Prepare installer files
         shell: pwsh
         run: |
           Copy-Item 'dist/DONT-STOP-Setup.exe' "dist/DONT-STOP-Setup-v$env:APP_VERSION-build${env:GITHUB_RUN_NUMBER}.exe"
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -60,7 +51,6 @@ jobs:
           path: dist/DONT-STOP-Setup.exe
           if-no-files-found: error
           overwrite: true
-
       - name: Publish Windows release
         shell: pwsh
         env:
@@ -72,6 +62,7 @@ jobs:
           $versioned = "dist/DONT-STOP-Setup-v$env:APP_VERSION-build${env:GITHUB_RUN_NUMBER}.exe"
           $stable = 'dist/DONT-STOP-Setup.exe'
           if (gh release view $tag --repo $repo 2>$null) {
+            gh release delete-asset $tag "DONT-STOP-Setup.exe" --repo $repo --yes 2>$null || $true
             gh release upload $tag $versioned $stable --repo $repo --clobber
           } else {
             gh release create $tag $versioned $stable --repo $repo --title 'DONT STOP Windows' --notes 'Aktueller DONT STOP Windows-Installer.' --latest=false
