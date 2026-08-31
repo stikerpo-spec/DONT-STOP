@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  // The updater is deliberately isolated from gameplay. It never creates a full-screen layer.
+  // Updater is isolated from gameplay. It only adds a small update button when a newer build exists.
   const RAW = 'https://raw.githubusercontent.com/stikerpo-spec/DONT-STOP/main/build-info.js';
   const WINDOWS = 'https://github.com/stikerpo-spec/DONT-STOP/releases/download/windows-latest/DONT-STOP-Setup.exe';
   const ANDROID = 'https://github.com/stikerpo-spec/DONT-STOP/releases/download/android-latest/DONT-STOP.apk';
@@ -31,7 +31,6 @@
     const versionDiff = compareVersion(remote.version, local.version);
     if (versionDiff > 0) return true;
     if (versionDiff < 0) return false;
-    // Only compare workflow runs when the installed build actually contains one.
     return Boolean(local.run) && Boolean(remote.run) && remote.run > local.run;
   };
 
@@ -66,8 +65,12 @@
           return;
         }
         const link = document.createElement('a');
-        link.href = url; link.target = '_blank'; link.rel = 'noopener';
-        document.body.appendChild(link); link.click(); link.remove();
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
         button.disabled = false;
         button.textContent = 'UPDATE ERNEUT VERSUCHEN';
       } catch (error) {
@@ -80,7 +83,7 @@
   }
 
   async function check() {
-    if (!isNative() || location.pathname.endsWith('/game.html')) return;
+    if (!isNative()) return;
     try {
       const response = await fetch(`${RAW}?t=${Date.now()}`, { cache: 'no-store' });
       if (!response.ok) return;
