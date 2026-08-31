@@ -178,8 +178,6 @@ jobs:
           VERSIONED="DONT-STOP-v${APP_VERSION}-build${GITHUB_RUN_NUMBER}.apk"
           STABLE="DONT-STOP.apk"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release delete-asset "$TAG" "DONT-STOP.apk" --repo "$GITHUB_REPOSITORY" --yes >/dev/null 2>&1 || true
-            gh release upload "$TAG" "$VERSIONED" "$STABLE" --repo "$GITHUB_REPOSITORY" --clobber
-          else
-            gh release create "$TAG" "$VERSIONED" "$STABLE" --repo "$GITHUB_REPOSITORY" --title "DONT STOP Android" --notes "Aktueller DONT STOP Android-Build." --latest=false
+            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
           fi
+          gh release create "$TAG" "$VERSIONED" "$STABLE" --repo "$GITHUB_REPOSITORY" --title "DONT STOP Android" --notes "DONT STOP $APP_VERSION" --latest=false
